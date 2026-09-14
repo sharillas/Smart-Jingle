@@ -1,0 +1,93 @@
+{
+  "name": "smart-jingle",
+  "version": "0.1.0",
+  "description": "Smart Jingle - QCart jingle player with waveform editor, playlists, remote API and Bitfocus Companion module. By Nelson Teixeira.",
+  "main": "main.js",
+  "author": {
+    "name": "Nelson Teixeira",
+    "organization": "Smartchoice"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/sharillas/smart-jingle",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win nsis msi --mac dmg --publish never",
+    "dist:win": "electron-builder --win nsis msi --publish never",
+    "dist:mac": "electron-builder --mac dmg --publish never",
+    "pack:companion": "node scripts/pack-companion.js",
+    "release:all": "npm run pack:companion && npm run dist"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.smartchoice.smartjingle",
+    "productName": "Smart Jingle",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "asar": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/icon.png",
+      "assets/icon.ico",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Smart Jingle"
+    },
+    "msi": {
+      "oneClick": false,
+      "perMachine": false
+    },
+    "mac": {
+      "category": "public.app-category.music",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null
+    }
+  },
+  "allowScripts": {
+    "electron@37.10.3": true,
+    "electron-winstaller@5.4.0": true
+  }
+}

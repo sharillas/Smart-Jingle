@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>Smart Jingle Remote</title>
+  <style>
+    :root {
+      --bg: #0e1219; --panel: #161b26; --panel-2: #1b2231; --border: #273143;
+      --text: #e6ebf4; --muted: #8b95a9; --blue: #2f81f7; --green: #22c55e;
+      --red: #ef4444; --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: "Segoe UI", system-ui, sans-serif; }
+    body { display: flex; flex-direction: column; user-select: none; }
+
+    header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; background: #10151f; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 5;
+    }
+    .brand { font-weight: 700; font-size: 15px; letter-spacing: .4px; }
+    .brand small { color: var(--muted); font-weight: 400; font-size: 10px; display: block; }
+    .conn { margin-left: auto; font-size: 10px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .conn .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+    .conn.on .dot { background: var(--green); }
+
+    #tabs { display: flex; gap: 6px; padding: 10px 14px 0; overflow-x: auto; }
+    #tabs button {
+      background: var(--panel); border: 1px solid var(--border); color: var(--muted);
+      padding: 7px 14px; border-radius: 8px 8px 0 0; font-size: 12px; white-space: nowrap;
+    }
+    #tabs button.active { background: var(--panel-2); color: var(--text); border-bottom-color: var(--panel-2); font-weight: 700; }
+
+    #grid {
+      flex: 1; overflow-y: auto; padding: 12px 14px;
+      display: grid; gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      align-content: start;
+    }
+    .rbtn {
+      position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+      min-height: 96px; padding: 12px; border-radius: 12px;
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
+      border: 1px solid var(--border);
+      color: var(--text); font-size: 14px; font-weight: 700;
+      overflow: hidden; cursor: pointer;
+    }
+    .rbtn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c, var(--blue)); }
+    .rbtn.playing { border-color: var(--c, var(--green)); box-shadow: 0 0 14px -4px var(--c, var(--green)); }
+    .rbtn.playing .prog { display: block; }
+    .rbtn .prog {
+      display: none; position: absolute; left: 0; bottom: 0; height: 4px; width: 0%;
+      background: var(--c, var(--green));
+    }
+    .rbtn .pl { font-size: 10px; color: var(--muted); font-weight: 400; }
+
+    footer {
+      display: flex; gap: 8px; padding: 12px 14px;
+      border-top: 1px solid var(--border); background: #10151f;
+      position: sticky; bottom: 0; z-index: 5;
+    }
+    footer button {
+      flex: 1; padding: 14px 8px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--panel-2); color: var(--text); font-weight: 700; letter-spacing: 1px; font-size: 13px;
+    }
+    footer button.go { background: linear-gradient(180deg, #2f81f7, #1e6fd9); border-color: #3b8bf7; }
+    footer button.paused { background: linear-gradient(180deg, #f59e0b, #c97f06); border-color: #fbbf24; color: #10151f; }
+    footer button.stop { background: linear-gradient(180deg, #8f2c2c, #7a2525); border-color: #a03a3a; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Smart Jingle<small>Remote · by Nelson Teixeira</small></div>
+    <div class="conn" id="conn"><span class="dot"></span><span id="conn-text">connecting…</span></div>
+  </header>
+
+  <div id="tabs"></div>
+  <div id="grid"></div>
+
+  <footer>
+    <button class="go" id="f-go">GO</button>
+    <button id="f-pause">PAUSE</button>
+    <button id="f-reset">RESET</button>
+    <button class="stop" id="f-stop">STOP</button>
+  </footer>
+
+  <script>
+    (function () {
+      var state = { playlists: [], carts: [], playing: [], paused: false, selectedCartId: null, activePlaylistId: null };
+      var ws = null;
+      var currentPlaylist = null;
+
+      function post(path) {
+        fetch(path, { method: 'POST' }).catch(function () {});
+      }
+
+      function render() {
+        var tabs = document.getElementById('tabs');
+        tabs.innerHTML = '';
+        var playlists = state.playlists || [];
+        if (!currentPlaylist && playlists.length) currentPlaylist = state.activePlaylistId || playlists[0].id;
+        playlists.forEach(function (p) {
+          var b = document.createElement('button');
+          b.textContent = p.name + ' (' + p.carts + ')';
+          b.className = p.id === currentPlaylist ? 'active' : '';
+          b.onclick = function () {
+            currentPlaylist = p.id;
+            post('/api/playlists/' + encodeURIComponent(p.id) + '/activate');
+            render();
+          };
+          tabs.appendChild(b);
+        });
+
+        var grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        var carts = state.carts.filter(function (c) { return c.playlistId === currentPlaylist; });
+        if (!carts.length) {
+          var d = document.createElement('div');
+          d.style.cssText = 'color:var(--muted);padding:20px;grid-column:1/-1;text-align:center;';
+          d.textContent = 'No jingles in this playlist.';
+          grid.appendChild(d);
+        }
+        var playing = {};
+        state.playing.forEach(function (p) { playing[p.cartId] = p; });
+        carts.forEach(function (c) {
+          var b = document.createElement('button');
+          b.className = 'rbtn' + (playing[c.id] ? ' playing' : '');
+          b.style.setProperty('--c', c.color || '');
+          var name = document.createElement('span');
+          name.textContent = c.name;
+          var pl = document.createElement('span');
+          pl.className = 'pl';
+          pl.textContent = c.playlistName || '';
+          var prog = document.createElement('span');
+          prog.className = 'prog';
+          if (playing[c.id]) prog.style.width = (playing[c.id].progress * 100).toFixed(1) + '%';
+          b.appendChild(name);
+          b.appendChild(pl);
+          b.appendChild(prog);
+          b.onclick = function () { post('/api/jingles/' + encodeURIComponent(c.id) + '/play'); };
+          grid.appendChild(b);
+        });
+
+        var pauseBtn = document.getElementById('f-pause');
+        pauseBtn.classList.toggle('paused', !!state.paused);
+      }
+
+      function apply(s) {
+        state = s;
+        render();
+      }
+
+      function connect() {
+        var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+        try {
+          ws = new WebSocket(proto + location.host + '/ws');
+        } catch (e) {
+          ws = null;
+        }
+        if (!ws) return;
+        ws.onopen = function () { setConn(true); };
+        ws.onclose = function () { setConn(false); setTimeout(connect, 2000); };
+        ws.onerror = function () { setConn(false); };
+        ws.onmessage = function (ev) {
+          try {
+            var msg = JSON.parse(ev.data);
+            if (msg.type === 'state') apply(msg.payload);
+          } catch (e) {}
+        };
+      }
+
+      function setConn(on) {
+        document.getElementById('conn').classList.toggle('on', on);
+        document.getElementById('conn-text').textContent = on ? 'connected' : 'offline';
+      }
+
+      document.getElementById('f-go').onclick = function () { post('/api/transport/go'); };
+      document.getElementById('f-pause').onclick = function () { post('/api/transport/pause'); };
+      document.getElementById('f-reset').onclick = function () { post('/api/transport/reset'); };
+      document.getElementById('f-stop').onclick = function () { post('/api/transport/stop-all'); };
+
+      fetch('/api/state').then(function (r) { return r.json(); }).then(apply).catch(function () {});
+      connect();
+    })();
+  </script>
+</body>
+</html>

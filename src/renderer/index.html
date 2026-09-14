@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; media-src sj: blob:; img-src 'self' data:;" />
+  <title>Smart Jingle</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header id="topbar">
+    <div class="brand">
+      <div class="logo"><span class="logo-tri"></span><span class="logo-bars"></span></div>
+      <div class="brand-text">
+        <h1>Smart Jingle</h1>
+        <span class="version">v0.1.0</span>
+      </div>
+    </div>
+
+    <div class="transport" id="transport">
+      <button class="tbtn t-go" id="btn-go" title="Launch selected jingle">GO</button>
+      <button class="tbtn t-pause" id="btn-pause" title="Pause / resume all">PAUSE</button>
+      <button class="tbtn t-reset" id="btn-reset" title="Stop all and clear selection">RESET</button>
+      <button class="tbtn t-stop" id="btn-stop" title="Stop all">STOP ALL</button>
+    </div>
+
+    <div class="top-right">
+      <div class="server-badge" id="server-badge" title="Click to copy remote URL">
+        <span class="dot" id="server-dot"></span>
+        <span id="server-label">API —</span>
+      </div>
+      <button class="icon-btn" id="btn-settings" title="Settings">&#9881;</button>
+    </div>
+  </header>
+
+  <main id="layout">
+    <aside id="sidebar">
+      <div class="sidebar-head">
+        <span>PLAYLISTS</span>
+        <button class="icon-btn small" id="btn-add-playlist" title="New playlist">+</button>
+      </div>
+      <ul id="playlist-list"></ul>
+      <div class="sidebar-foot">
+        <button class="mini-btn" id="btn-add-files" title="Add jingle files to current playlist">+ Add Jingles…</button>
+        <span class="hint">drop audio files here</span>
+      </div>
+    </aside>
+
+    <section id="stage">
+      <div id="wavebar" class="panel">
+        <canvas id="wavebar-canvas" height="72"></canvas>
+        <div class="wavebar-info" id="wavebar-info">
+          <div class="wb-name" id="wb-name">No jingle selected</div>
+          <div class="wb-times" id="wb-times">—</div>
+        </div>
+        <button class="mini-btn" id="btn-edit" disabled title="Edit IN / OUT points">Edit IN/OUT</button>
+      </div>
+
+      <div id="carts-area">
+        <div class="carts-head">
+          <span id="carts-title">Jingles</span>
+          <div class="carts-tools">
+            <label class="cols-label">Grid
+              <select id="sel-cols">
+                <option value="4">4</option>
+                <option value="6">6</option>
+                <option value="8" selected>8</option>
+                <option value="10">10</option>
+                <option value="12">12</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div id="carts-grid" class="carts-grid"></div>
+        <div id="empty-hint" class="empty-hint">
+          <p>No jingles here yet.</p>
+          <p>Click <b>+ Add Jingles…</b> or drop audio files anywhere.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer id="footer">
+    All rights Reserved - Smartchoice@2026 - Copyright @ developed by Nelson Teixeira
+  </footer>
+
+  <div id="ctx-menu" class="ctx-menu hidden"></div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-box" class="modal-box"></div>
+  </div>
+
+  <script src="waveform.js"></script>
+  <script src="player.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
