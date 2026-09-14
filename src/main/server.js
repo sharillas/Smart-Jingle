@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const { WebSocketServer } = require('ws');
 
 let storeRef = null;
-let appVersion = '0.1.0';
+let appVersion = '0.1.1';
 let getWin = null;
 let server = null;
 let wss = null;

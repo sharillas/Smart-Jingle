@@ -27,9 +27,25 @@ remotely from a tablet, another PC or a Bitfocus Companion surface.
 Get the latest installers from
 [Releases](https://github.com/sharillas/smart-jingle/releases):
 
-- Windows: `Smart-Jingle-Setup-<version>.exe` (or `.msi`)
-- macOS: `Smart-Jingle-<version>-universal.dmg`
+- Windows: `Smart.Jingle.Setup.<version>.exe` (or `.msi`)
+- macOS: `Smart.Jingle-<version>-universal.dmg`
 - Companion: `smart-jingle-<version>.tgz`
+
+On first start the app creates a **Default Jingles** playlist with 3 built-in
+jingles (SWEEPER, TRANSITION, BED MUSIC) so you can try everything immediately.
+
+### macOS Gatekeeper warning
+
+The DMG is ad-hoc signed but not notarized yet (notarization requires an Apple
+Developer ID). On first open macOS may show *"cannot be opened because Apple
+cannot check it for malicious software"* — this is normal for open-source
+unsigned apps. Bypass it once:
+
+1. Right-click the app icon and choose **Open** → confirm **Open**,
+   or run `xattr -cr "/Applications/Smart Jingle.app"` in Terminal.
+
+To remove the warning entirely, build with a Developer ID and notarization
+(see "Building releases" below).
 
 ## Remote API
 
@@ -79,5 +95,12 @@ user-data folder (File → Reveal Data File).
 
 ## Building releases
 
-Push a tag `v*` (e.g. `v0.1.0`) — GitHub Actions builds the Windows and macOS
+Push a tag `v*` (e.g. `v0.1.1`) — GitHub Actions builds the Windows and macOS
 installers plus the Companion `.tgz` and attaches everything to the release.
+
+To fully sign and notarize the macOS build (removes the Gatekeeper warning),
+add these secrets to the repository and enable the commented lines in
+`.github/workflows/build.yml`, then set `"hardenedRuntime": true` in `build.mac`:
+
+- `CSC_LINK` (base64 of the Developer ID .p12) and `CSC_KEY_PASSWORD`
+- `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`

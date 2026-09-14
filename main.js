@@ -47,6 +47,10 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, 'src', 'renderer', 'index.html'));
 
+  mainWindow.webContents.on('console-message', (_e, _level, message) => {
+    console.log('RENDERER:', message);
+  });
+
   const saveBounds = () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const b = mainWindow.getBounds();
@@ -173,7 +177,7 @@ app.whenReady().then(async () => {
     console.warn('Permission handler error:', e);
   }
 
-  store.load();
+  store.load(path.join(__dirname, 'assets', 'default-audio'));
   media.register();
   server.start(store, app.getVersion(), () => mainWindow, (state) => (latestState = state));
   ipc.register(store, () => mainWindow);

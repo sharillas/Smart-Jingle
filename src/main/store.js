@@ -28,16 +28,48 @@ function getPath() {
   return dataPath;
 }
 
-function load() {
+function load(defaultAudioDir) {
   try {
     const raw = fs.readFileSync(getPath(), 'utf8');
     data = Object.assign(defaults(), JSON.parse(raw));
   } catch {
     data = defaults();
+    seedDefaults(defaultAudioDir);
     save();
   }
   if (!Array.isArray(data.playlists)) data.playlists = [];
   return data;
+}
+
+function seedDefaults(srcDir) {
+  if (!srcDir || !fs.existsSync(srcDir)) return;
+  const outDir = path.join(app.getPath('userData'), 'default-audio');
+  const defaultsList = [
+    { file: 'sweeper.wav', name: 'SWEEPER' },
+    { file: 'transition.wav', name: 'TRANSITION' },
+    { file: 'bed.wav', name: 'BED MUSIC' },
+  ];
+  try {
+    fs.mkdirSync(outDir, { recursive: true });
+    const carts = [];
+    for (const f of defaultsList) {
+      const src = path.join(srcDir, f.file);
+      const dst = path.join(outDir, f.file);
+      if (fs.existsSync(src) && !fs.existsSync(dst)) {
+        fs.copyFileSync(src, dst);
+      }
+      if (fs.existsSync(dst)) {
+        carts.push({ id: id('c'), name: f.name, file: dst, in: 0, out: null, volume: 1, color: null });
+      }
+    }
+    if (carts.length) {
+      const pl = { id: id('pl'), name: 'Default Jingles', carts };
+      data.playlists.push(pl);
+      data.ui.activePlaylistId = pl.id;
+    }
+  } catch (e) {
+    console.error('STORE: seeding default jingles failed', e);
+  }
 }
 
 function save() {
@@ -146,7 +178,7 @@ function publicState() {
   const d = getData();
   return {
     app: 'Smart Jingle',
-    version: '0.1.0',
+    version: app.getVersion() || '0.1.1',
     playlists: d.playlists.map((p) => ({
       id: p.id,
       name: p.name,

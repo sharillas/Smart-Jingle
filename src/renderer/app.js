@@ -592,7 +592,7 @@
     const pl = activePlaylist();
     return {
       app: 'Smart Jingle',
-      version: '0.1.0',
+      version: '0.1.1',
       paused: SJPlayer.state((id) => findCart(id)?.cart).paused,
       selectedCartId: SJPlayer.getSelected(),
       activePlaylistId: pl ? pl.id : null,

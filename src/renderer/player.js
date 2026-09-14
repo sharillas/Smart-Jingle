@@ -31,11 +31,11 @@
     audio.volume = Math.min(1, Math.max(0, cart.volume ?? 1));
     const inS = cart.in || 0;
     const outS = cartEnd(cart);
-    const inst = { id: cartId, audio, inS, outS, startedAt: Date.now() - inS * 1000 };
+    const inst = { id: cartId, audio, inS, outS, startedAt: Date.now() - inS * 1000, stopped: false };
     active.set(cartId, inst);
 
     audio.addEventListener('loadedmetadata', () => {
-      if (inst.audio !== audio) return;
+      if (inst.stopped || inst.audio !== audio) return;
       try {
         audio.currentTime = Math.min(inS, (audio.duration || 0) - 0.05);
       } catch (e) {
@@ -43,13 +43,20 @@
       }
     });
     audio.addEventListener('timeupdate', () => {
-      if (inst.audio !== audio) return;
+      if (inst.stopped || inst.audio !== audio) return;
       if (outS !== Infinity && audio.currentTime >= outS) {
         stopCart(cartId);
       }
     });
-    audio.addEventListener('ended', () => stopCart(cartId));
-    audio.addEventListener('error', () => stopCart(cartId));
+    audio.addEventListener('ended', () => {
+      if (inst.stopped) return;
+      stopCart(cartId);
+    });
+    audio.addEventListener('error', () => {
+      if (inst.stopped) return;
+      console.error('PLAYER: audio error', cartId, audio.error ? audio.error.code : '?');
+      stopCart(cartId);
+    });
     audio.play().catch(() => stopCart(cartId));
 
     selectedCartId = cartId;
@@ -61,6 +68,7 @@
   function stopCart(cartId) {
     const inst = active.get(cartId);
     if (!inst) return false;
+    inst.stopped = true;
     active.delete(cartId);
     try {
       inst.audio.pause();

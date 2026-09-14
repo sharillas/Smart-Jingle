@@ -1,6 +1,6 @@
 {
   "name": "smart-jingle",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Smart Jingle - QCart jingle player with waveform editor, playlists, remote API and Bitfocus Companion module. By Nelson Teixeira.",
   "main": "main.js",
   "author": {
@@ -37,8 +37,7 @@
       "main.js",
       "preload.js",
       "src/**/*",
-      "assets/icon.png",
-      "assets/icon.ico",
+      "assets/**/*",
       "package.json"
     ],
     "win": {
@@ -83,7 +82,7 @@
       "icon": "assets/icon.png",
       "hardenedRuntime": false,
       "gatekeeperAssess": false,
-      "identity": null
+      "identity": "-"
     }
   },
   "allowScripts": {
