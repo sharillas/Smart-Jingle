@@ -8,7 +8,7 @@
     "organization": "Smartchoice"
   },
   "license": "UNLICENSED",
-  "homepage": "https://github.com/sharillas/smart-jingle",
+  "homepage": "https://github.com/sharillas/Smart-Jingle",
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",

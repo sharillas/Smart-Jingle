@@ -1,8 +1,15 @@
 # Smart Jingle
 
-Audio Jingle Player broadcast, Live/Corporte Events — launch jingles like hot cues,
+Audio Jingle Player broadcast, Live/Corporate Events — launch jingles like hot cues,
 edit IN/OUT points on a waveform, organise files in playlist groups, and control everything
 remotely from a tablet, another PC or a Bitfocus Companion surface.
+
+[![Release](https://img.shields.io/github/v/release/sharillas/Smart-Jingle?label=Release&color=2f81f7)](https://github.com/sharillas/Smart-Jingle/releases)
+[![Windows](https://img.shields.io/badge/Windows-10%2F11-0078d4?logo=windows&logoColor=ffffff)]()
+[![macOS](https://img.shields.io/badge/macOS-Universal-111111?logo=apple&logoColor=ffffff)]()
+[![Electron](https://img.shields.io/badge/Electron-37-47848f?logo=electron&logoColor=ffffff)]()
+[![Companion](https://img.shields.io/badge/Bitfocus_Companion-Module-000000)](https://bitfocus.io/companion)
+[![License](https://img.shields.io/badge/License-All_Rights_Reserved-c92a2a)]()
 
 > All rights Reserved - Smartchoice@2026 - Copyright @ developed by Nelson Teixeira
 
@@ -50,13 +57,13 @@ remotely from a tablet, another PC or a Bitfocus Companion surface.
 ## Download & install
 
 Get the latest installers from
-[Releases](https://github.com/sharillas/smart-jingle/releases):
+[Releases](https://github.com/sharillas/Smart-Jingle/releases):
 
 - Windows: `Smart.Jingle.Setup.<version>.exe` (or `.msi`)
 - macOS: `Smart.Jingle-<version>-universal.dmg`
 - Companion: `smart-jingle-<version>.tgz`
 
-On first start the app creates a **Default Jingles** playlist with 3 built-in
+On first start the app creates a **Jingle List** playlist with 3 built-in
 jingles (SWEEPER, TRANSITION, BED MUSIC) so you can try everything immediately.
 
 ### macOS Gatekeeper warning
@@ -130,3 +137,15 @@ add these secrets to the repository and enable the commented lines in
 
 - `CSC_LINK` (base64 of the Developer ID .p12) and `CSC_KEY_PASSWORD`
 - `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
+
+## License
+
+Proprietary software — **All rights Reserved**.
+
+```
+All rights Reserved - Smartchoice@2026 - Copyright @ developed by Nelson Teixeira
+```
+
+Copyright © 2026 Nelson Teixeira, Smartchoice. No part of this software may be
+copied, modified, distributed or used without prior written permission.
+See [LICENSE](LICENSE) for details.

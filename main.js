@@ -164,7 +164,7 @@ function semverGt(a, b) {
 
 async function checkForUpdates(manual) {
   try {
-    const res = await fetch('https://api.github.com/repos/sharillas/smart-jingle/releases/latest', {
+    const res = await fetch('https://api.github.com/repos/sharillas/Smart-Jingle/releases/latest', {
       headers: { 'User-Agent': 'smart-jingle', Accept: 'application/vnd.github+json' },
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -386,7 +386,7 @@ function buildMenu() {
         },
         {
           label: mt('github'),
-          click: () => shell.openExternal('https://github.com/sharillas/smart-jingle'),
+          click: () => shell.openExternal('https://github.com/sharillas/Smart-Jingle'),
         },
         {
           label: mt('open_remote'),
