@@ -1,14 +1,14 @@
 {
   "name": "smart-jingle",
-  "version": "0.1.1",
-  "description": "Smart Jingle : by Nelson Teixeira - control jingle carts, GO/PAUSE/RESET transport and playlists of the Smart Jingle app",
+  "version": "0.2.0",
+  "description": "SMART-JINGLE - by Nelson Teixeira : control jingle carts, GO/PAUSE/RESET transport and playlists of the Smart Jingle app",
   "main": "index.js",
   "type": "commonjs",
   "manufacturer": "Smartchoice",
-  "product": ["Smart Jingle"],
+  "product": ["SMART-JINGLE - by Nelson Teixeira"],
   "shortname": "smart-jingle",
   "keywords": ["audio", "jingles", "playout", "cart", "radio", "sound"],
-  "license": "MIT",
+  "license": "UNLICENSED",
   "author": "Nelson Teixeira <smartchoice>",
   "runtime": {
     "type": "node22",

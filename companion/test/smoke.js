@@ -24,14 +24,21 @@ SmartJingle.prototype.setVariableDefinitions = function (d) { captured.variables
   const choices = transport.options[0].choices.map((c) => c.id).join(',');
   console.log('transport choices:', choices);
 
-  await captured.actions.play_jingle.callback({ options: { jingle: 'c_test01' } });
+  const playAction = captured.actions.play_jingle;
+  const firstJingle = inst.jingles[0];
+  const key = firstJingle.cid || firstJingle.id;
+  console.log('first jingle key:', key, '(' + firstJingle.name + ')');
+  await playAction.callback({ options: { jingle: key } });
   await new Promise((r) => setTimeout(r, 800));
   const state = await inst.request('GET', '/api/state');
   console.log('remote playing count:', state.playing.length);
 
-  inst.playing = (state.playing || []).reduce((m, p) => ((m[p.cartId] = p), m), {});
-  console.log('feedback playing(c_test01):', captured.feedbacks.playing.callback({ options: { jingle: 'c_test01' } }));
-  console.log('feedback playing(c_test02):', captured.feedbacks.playing.callback({ options: { jingle: 'c_test02' } }));
+  inst.playing = (state.playing || []).reduce((m, p) => {
+    m[p.cartId] = p;
+    if (p.cid) m[p.cid] = p;
+    return m;
+  }, {});
+  console.log('feedback playing(' + key + '):', captured.feedbacks.playing.callback({ options: { jingle: key } }));
   console.log('feedback connected:', captured.feedbacks.connected.callback({ options: {} }));
 
   const jinglePreset = captured.presets['smartjingle-jingles-1'];

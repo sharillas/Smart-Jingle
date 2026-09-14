@@ -83,6 +83,7 @@
     <button id="f-pause">PAUSE</button>
     <button id="f-reset">RESET</button>
     <button class="stop" id="f-stop">STOP</button>
+    <button id="f-loop" title="Playlist loop">LOOP</button>
   </footer>
 
   <script>
@@ -131,7 +132,7 @@
           name.textContent = c.name;
           var pl = document.createElement('span');
           pl.className = 'pl';
-          pl.textContent = c.playlistName || '';
+          pl.textContent = (c.cid ? c.cid + ' · ' : '') + (c.playlistName || '');
           var prog = document.createElement('span');
           prog.className = 'prog';
           if (playing[c.id]) prog.style.width = (playing[c.id].progress * 100).toFixed(1) + '%';
@@ -144,6 +145,7 @@
 
         var pauseBtn = document.getElementById('f-pause');
         pauseBtn.classList.toggle('paused', !!state.paused);
+        document.getElementById('f-loop').classList.toggle('go', !!state.playlistLoop);
       }
 
       function apply(s) {
@@ -179,6 +181,7 @@
       document.getElementById('f-pause').onclick = function () { post('/api/transport/pause'); };
       document.getElementById('f-reset').onclick = function () { post('/api/transport/reset'); };
       document.getElementById('f-stop').onclick = function () { post('/api/transport/stop-all'); };
+      document.getElementById('f-loop').onclick = function () { post('/api/transport/loop-playlist'); };
 
       fetch('/api/state').then(function (r) { return r.json(); }).then(apply).catch(function () {});
       connect();

@@ -1,13 +1,13 @@
-# Smart Jingle : by Nelson Teixeira
+# SMART-JINGLE - by Nelson Teixeira
 
 Bitfocus Companion module for **Smart Jingle** — QCart jingle player with waveform editing,
 playlist groups and a built-in remote API.
 
 ## Features
 
-- **Play Jingle** — launch any jingle cart configured in the Smart Jingle GUI
+- **Play Jingle** — launch any jingle cart by its **Jingle ID** (J1, J2, … configured in the GUI)
 - **Stop Jingle** — stop a running cart
-- **Transport** — GO / PAUSE / RESET / STOP ALL
+- **Transport** — GO (launch cued jingle + advance to next) / PAUSE / RESET / STOP ALL
 - **Select Playlist** — switch active playlist group
 - **Feedbacks** — jingle playing (green), jingle selected (blue), paused (amber), connected
 - **Variables** — per-jingle playing state, transport state, active playlist

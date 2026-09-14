@@ -5,6 +5,41 @@
   let paused = false;
   let selectedCartId = null;
   let lastPlayedId = null;
+  let endedHandler = null;
+  let masterVolume = 1;
+  let outputDeviceId = 'default';
+
+  function setEndedHandler(fn) {
+    endedHandler = fn;
+  }
+
+  function setMasterVolume(v) {
+    masterVolume = Math.min(1, Math.max(0, Number(v) || 0));
+    for (const inst of active.values()) {
+      try {
+        inst.audio.volume = (inst.baseVolume || 1) * masterVolume;
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }
+
+  function setOutputDevice(id) {
+    outputDeviceId = id || 'default';
+    for (const inst of active.values()) {
+      applySink(inst.audio);
+    }
+  }
+
+  function applySink(audio) {
+    try {
+      if (audio.setSinkId && outputDeviceId && outputDeviceId !== 'default') {
+        audio.setSinkId(outputDeviceId).catch(() => {});
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }
 
   function audioUrl(file) {
     return 'sj://media/' + encodeURIComponent(file);
@@ -28,10 +63,12 @@
     stopCart(cartId);
 
     const audio = new Audio(audioUrl(cart.file));
-    audio.volume = Math.min(1, Math.max(0, cart.volume ?? 1));
+    audio.volume = Math.min(1, Math.max(0, cart.volume ?? 1)) * masterVolume;
+    applySink(audio);
     const inS = cart.in || 0;
     const outS = cartEnd(cart);
-    const inst = { id: cartId, audio, inS, outS, startedAt: Date.now() - inS * 1000, stopped: false };
+    const loop = cart.mode === 'loop';
+    const inst = { id: cartId, audio, inS, outS, loop, baseVolume: cart.volume ?? 1, startedAt: Date.now() - inS * 1000, stopped: false };
     active.set(cartId, inst);
 
     audio.addEventListener('loadedmetadata', () => {
@@ -45,12 +82,43 @@
     audio.addEventListener('timeupdate', () => {
       if (inst.stopped || inst.audio !== audio) return;
       if (outS !== Infinity && audio.currentTime >= outS) {
-        stopCart(cartId);
+        if (loop) {
+          try {
+            audio.currentTime = inst.inS;
+          } catch (e) {
+            /* ignore */
+          }
+        } else {
+          stopCart(cartId);
+          if (endedHandler) {
+            try {
+              endedHandler(cartId);
+            } catch (e) {
+              /* ignore */
+            }
+          }
+        }
       }
     });
     audio.addEventListener('ended', () => {
       if (inst.stopped) return;
+      if (loop) {
+        try {
+          audio.currentTime = inst.inS;
+          audio.play().catch(() => {});
+        } catch (e) {
+          /* ignore */
+        }
+        return;
+      }
       stopCart(cartId);
+      if (endedHandler) {
+        try {
+          endedHandler(cartId);
+        } catch (e) {
+          /* ignore */
+        }
+      }
     });
     audio.addEventListener('error', () => {
       if (inst.stopped) return;
@@ -103,10 +171,14 @@
     return paused;
   }
 
-  function go(getCart) {
-    const target = selectedCartId || lastPlayedId;
-    if (!target) return false;
-    return play(target, getCart);
+  function go(getCart, getCarts) {
+    const list = getCarts ? getCarts() : [];
+    if (!list.length) return false;
+    let idx = list.findIndex((id) => id === selectedCartId);
+    if (idx === -1) idx = 0;
+    const ok = play(list[idx], getCart);
+    selectedCartId = list[(idx + 1) % list.length];
+    return ok;
   }
 
   function state(getCart) {
@@ -119,6 +191,7 @@
       const duration = Math.max(0.01, (end || 0) - (inst.inS || 0));
       playing.push({
         cartId: inst.id,
+        cid: cart.cid || cart.id,
         name: cart.name,
         playlistId: cart.playlistId || null,
         currentTime: Math.max(0, current - (inst.inS || 0)),
@@ -140,6 +213,9 @@
     go,
     state,
     fmt,
+    setEndedHandler,
+    setMasterVolume,
+    setOutputDevice,
     isActive: (id) => active.has(id),
     getSelected: () => selectedCartId,
     setSelected: (id) => (selectedCartId = id),

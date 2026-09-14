@@ -128,12 +128,17 @@ class SmartJingleInstance extends InstanceBase {
     this.jingles = state.carts;
     this.playlists = state.playlists || [];
     this.playing = {};
-    for (const p of state.playing || []) this.playing[p.cartId] = p;
+    for (const p of state.playing || []) {
+      this.playing[p.cartId] = p;
+      if (p.cid) this.playing[p.cid] = p;
+    }
     this.paused = !!state.paused;
     this.selectedCartId = state.selectedCartId || null;
+    const selCart = this.jingles.find((j) => j.id === this.selectedCartId);
+    this.selectedKey = selCart ? selCart.cid || selCart.id : this.selectedCartId;
 
     const sig = JSON.stringify(
-      this.jingles.map((j) => [j.id, j.name, j.playlistName]).sort((a, b) => (a[0] < b[0] ? -1 : 1))
+      this.jingles.map((j) => [j.cid || j.id, j.name, j.playlistName]).sort((a, b) => (a[0] < b[0] ? -1 : 1))
     );
     if (sig !== this.lastJinglesJson) {
       this.lastJinglesJson = sig;
@@ -145,13 +150,12 @@ class SmartJingleInstance extends InstanceBase {
 
     const values = {};
     for (const j of this.jingles) {
-      const p = this.playing[j.id];
-      values[j.id] = p ? 'PLAYING ' + Math.round(p.progress * 100) + '%' : 'STOPPED';
+      const p = this.playing[j.cid || j.id] || this.playing[j.id];
+      values[this.varId(j)] = p ? 'PLAYING ' + Math.round(p.progress * 100) + '%' : 'STOPPED';
     }
     values.paused = this.paused ? 'PAUSED' : 'RUNNING';
     values.playing_count = Object.keys(this.playing).length;
-    const sel = this.jingles.find((j) => j.id === this.selectedCartId);
-    values.selected = sel ? sel.name : 'None';
+    values.selected = selCart ? selCart.name : 'None';
     const pl = (this.playlists || []).find((p) => p.id === state.activePlaylistId);
     values.playlist = pl ? pl.name : 'None';
     this.setVariableValues(values);
@@ -161,8 +165,16 @@ class SmartJingleInstance extends InstanceBase {
     this.checkFeedbacks('paused');
   }
 
+  keyOf(j) {
+    return j.cid || j.id;
+  }
+
+  varId(j) {
+    return 'j_' + String(j.cid || j.id).replace(/[^a-zA-Z0-9_]/g, '_');
+  }
+
   jingleChoices() {
-    return this.jingles.map((j) => ({ id: j.id, label: `${j.name} [${j.playlistName || ''}]` }));
+    return this.jingles.map((j) => ({ id: this.keyOf(j), label: `${this.keyOf(j)} · ${j.name}` }));
   }
 
   playlistChoices() {
@@ -206,7 +218,7 @@ class SmartJingleInstance extends InstanceBase {
             label: 'Command',
             default: 'go',
             choices: [
-              { id: 'go', label: 'GO - launch selected jingle' },
+              { id: 'go', label: 'GO - launch cued jingle + advance to next' },
               { id: 'pause', label: 'PAUSE - pause / resume all' },
               { id: 'reset', label: 'RESET - stop all + clear selection' },
               { id: 'stop-all', label: 'STOP ALL' },
@@ -259,10 +271,10 @@ class SmartJingleInstance extends InstanceBase {
       selected: {
         type: 'boolean',
         name: 'Jingle is selected',
-        description: 'Highlight the jingle that GO will relaunch',
+        description: 'Highlight the jingle that GO will launch',
         options: [jingleOpt],
         defaultStyle: { bgcolor: combineRgb(0, 102, 255), color: combineRgb(255, 255, 255) },
-        callback: (fb) => this.selectedCartId === fb.options.jingle,
+        callback: (fb) => this.selectedKey === fb.options.jingle,
       },
       paused: {
         type: 'boolean',
@@ -286,7 +298,7 @@ class SmartJingleInstance extends InstanceBase {
   buildVariables() {
     const vars = [];
     for (const j of this.jingles) {
-      vars.push({ variableId: j.id, name: `Jingle "${j.name}" status` });
+      vars.push({ variableId: this.varId(j), name: `Jingle "${this.keyOf(j)} - ${j.name}" status` });
     }
     vars.push({ variableId: 'paused', name: 'Transport state' });
     vars.push({ variableId: 'playing_count', name: 'Number of jingles playing' });
@@ -349,14 +361,15 @@ class SmartJingleInstance extends InstanceBase {
       const buttons = block.map((j, idx) => {
         const x = idx % 4;
         const y = Math.floor(idx / 4);
+        const key = this.keyOf(j);
         return mkBtn(
           x,
           y,
           j.name,
-          [{ down: [{ actionId: 'play_jingle', options: { jingle: j.id } }], up: [] }],
+          [{ down: [{ actionId: 'play_jingle', options: { jingle: key } }], up: [] }],
           [
-            { feedbackId: 'playing', options: { jingle: j.id }, style: { bgcolor: combineRgb(0, 153, 0) } },
-            { feedbackId: 'selected', options: { jingle: j.id }, style: { bgcolor: combineRgb(0, 102, 255) } },
+            { feedbackId: 'playing', options: { jingle: key }, style: { bgcolor: combineRgb(0, 153, 0) } },
+            { feedbackId: 'selected', options: { jingle: key }, style: { bgcolor: combineRgb(0, 102, 255) } },
           ]
         );
       });

@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const { WebSocketServer } = require('ws');
 
 let storeRef = null;
-let appVersion = '0.1.1';
+let appVersion = '0.2.0';
 let getWin = null;
 let server = null;
 let wss = null;
@@ -93,7 +93,7 @@ function route(req, res, method, urlPath) {
       json(res, 200, { ok: true });
       return;
     }
-    if ((m = /^\/api\/transport\/(go|pause|reset|stop-all)$/.exec(urlPath))) {
+    if ((m = /^\/api\/transport\/(go|pause|reset|stop-all|loop-playlist)$/.exec(urlPath))) {
       sendCommand({ cmd: m[1] });
       json(res, 200, { ok: true });
       return;
@@ -149,15 +149,29 @@ function start(store, version, winGetter, onState) {
   storeRef = store;
   appVersion = version;
   getWin = winGetter;
+  stateListeners.push(onState);
 
   const settings = storeRef.getData().settings;
-  const port = settings.port || 4405;
-  const enabled = settings.remoteEnabled !== false;
+  if (settings.remoteEnabled !== false) {
+    startListening();
+  } else {
+    console.log('SERVER: remote API disabled in settings');
+  }
+}
 
-  server = http.createServer((req, res) => {
-    const u = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    route(req, res, req.method, u.pathname);
-  });
+function startListening() {
+  const settings = storeRef.getData().settings;
+  const port = settings.port || 4405;
+  if (!server) {
+    server = http.createServer((req, res) => {
+      const u = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+      route(req, res, req.method, u.pathname);
+    });
+    server.on('error', (err) => {
+      console.error('SERVER: error', err.message);
+    });
+  }
+  if (server.listening) return;
 
   wss = new WebSocketServer({ server, path: '/ws' });
   wss.on('connection', (ws) => {
@@ -169,7 +183,7 @@ function start(store, version, winGetter, onState) {
           sendCommand({ cmd: 'play', cartId: msg.cartId });
         } else if (msg.action === 'stop_jingle' && msg.cartId) {
           sendCommand({ cmd: 'stop', cartId: msg.cartId });
-        } else if (msg.action === 'transport' && ['go', 'pause', 'reset', 'stop-all'].includes(msg.command)) {
+        } else if (msg.action === 'transport' && ['go', 'pause', 'reset', 'stop-all', 'loop-playlist'].includes(msg.command)) {
           sendCommand({ cmd: msg.command });
         } else if (msg.action === 'activate_playlist' && msg.playlistId) {
           sendCommand({ cmd: 'activate-playlist', playlistId: msg.playlistId });
@@ -180,15 +194,27 @@ function start(store, version, winGetter, onState) {
     });
   });
 
-  server.on('error', (err) => {
-    console.error('SERVER: error', err.message);
-  });
-
   server.listen(port, '0.0.0.0', () => {
     console.log(`SERVER: Smart Jingle API listening on http://0.0.0.0:${port}`);
   });
+}
 
-  stateListeners.push(onState);
+function setEnabled(enabled) {
+  if (!server) return;
+  if (enabled) {
+    startListening();
+  } else {
+    try {
+      if (wss) {
+        wss.close();
+        wss = null;
+      }
+      if (server.listening) server.close();
+      console.log('SERVER: remote API disabled');
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 function stop() {
@@ -203,6 +229,7 @@ function stop() {
 module.exports = {
   start,
   stop,
+  setEnabled,
   setState,
   getNetworkInfo,
   onStateChange: (fn) => stateListeners.push(fn),

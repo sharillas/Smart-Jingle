@@ -9,86 +9,115 @@
 <body>
   <header id="topbar">
     <div class="brand">
-      <div class="logo"><span class="logo-tri"></span><span class="logo-bars"></span></div>
+      <div class="logo">
+        <svg class="logo-svg" viewBox="0 -960 960 960" width="30" height="30" aria-hidden="true">
+          <path d="m400-320 240-160-240-160v320Zm-76 208.5Q251-143 197-197t-85.5-127Q80-397 80-480q0-43 9-84.5t26-80.5l62 62q-8 26-12.5 51.5T160-480q0 134 93 227t227 93q134 0 227-93t93-227q0-134-93-227t-227-93q-27 0-52.5 4.5T377-783l-61-61q40-18 80-27t84-9q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80q-83 0-156-31.5Zm-146.5-586Q160-715 160-740t17.5-42.5Q195-800 220-800t42.5 17.5Q280-765 280-740t-17.5 42.5Q245-680 220-680t-42.5-17.5ZM480-480Z" />
+        </svg>
+      </div>
       <div class="brand-text">
         <h1>Smart Jingle</h1>
-        <span class="tagline">QCart Jingle Player</span>
+        <span class="tagline">Audio Jingle Player | by Nelson Teixeira</span>
       </div>
     </div>
 
-    <div class="transport" id="transport">
-      <button class="tbtn t-go" id="btn-go" title="Launch selected jingle">GO</button>
-      <button class="tbtn t-pause" id="btn-pause" title="Pause / resume all">PAUSE</button>
-      <button class="tbtn t-reset" id="btn-reset" title="Stop all and clear selection">RESET</button>
-      <button class="tbtn t-stop" id="btn-stop" title="Stop all">STOP ALL</button>
+    <div class="header-remain-wrap">
+      <span class="hr-lbl" data-i18n="time_remaining">TIME REMAINING</span>
+      <div class="header-remain" id="header-remain" title="Time remaining">
+        <span class="hr-time" id="header-remain-time">–:––</span>
+      </div>
     </div>
 
-    <div class="top-right">
-      <div class="server-badge" id="server-badge" title="Click to copy remote URL">
-        <span class="dot" id="server-dot"></span>
-        <span id="server-label">API —</span>
+    <div class="header-right">
+      <div class="master-vol" title="Master output volume">
+        <span class="mv-icon">&#128266;</span>
+        <input type="range" id="master-vol" min="0" max="100" step="1" value="100" />
+        <span class="mv-val" id="master-vol-val">100%</span>
       </div>
-      <button class="icon-btn" id="btn-settings" title="Settings">&#9881;</button>
+      <div class="transport" id="transport">
+        <button class="tbtn t-go" id="btn-go" data-i18n="go" data-i18n-title="go" title="Launch selected jingle, then advance to the next">GO</button>
+        <button class="tbtn t-pause" id="btn-pause" data-i18n="pause" title="Pause / resume all">PAUSE</button>
+        <button class="tbtn t-reset" id="btn-reset" data-i18n="reset" title="Stop all and clear selection">RESET</button>
+        <button class="tbtn t-stop" id="btn-stop" data-i18n="stop_all" title="Stop all">STOP ALL</button>
+      </div>
     </div>
   </header>
 
   <main id="layout">
     <aside id="sidebar">
       <div class="sidebar-head">
-        <span>PLAYLISTS</span>
+        <span data-i18n="playlists">PLAYLISTS</span>
         <button class="icon-btn small" id="btn-add-playlist" title="New playlist">+</button>
       </div>
       <ul id="playlist-list"></ul>
       <div class="sidebar-foot">
-        <button class="mini-btn" id="btn-add-files" title="Add jingle files to current playlist">+ Add Jingles…</button>
-        <span class="hint">drop audio files here</span>
+        <button class="mini-btn" id="btn-add-files" title="Add jingle files to current playlist" data-i18n="add_jingles">+ Add Jingles…</button>
+        <span class="hint" data-i18n="drop_hint">drop audio files here</span>
       </div>
     </aside>
 
     <section id="stage">
       <div id="wavebar" class="panel">
-        <canvas id="wavebar-canvas" height="72"></canvas>
+        <canvas id="wavebar-canvas" height="132"></canvas>
         <div class="wavebar-info" id="wavebar-info">
           <div class="wb-name" id="wb-name">No jingle selected</div>
+          <div class="wb-remain" id="wb-remain"><span class="lbl">TIME REMAINING</span><span id="wb-remain-val">—</span></div>
           <div class="wb-times" id="wb-times">—</div>
         </div>
-        <button class="mini-btn" id="btn-edit" disabled title="Edit IN / OUT points">Edit IN/OUT</button>
+        <button class="mini-btn" id="btn-edit" disabled title="Edit jingle settings" data-i18n="edit_settings">Edit settings</button>
       </div>
 
       <div id="carts-area">
         <div class="carts-head">
           <span id="carts-title">Jingles</span>
+          <span class="carts-hint" id="carts-count">0 jingles</span>
           <div class="carts-tools">
-            <label class="cols-label">Grid
-              <select id="sel-cols">
-                <option value="4">4</option>
-                <option value="6">6</option>
-                <option value="8" selected>8</option>
-                <option value="10">10</option>
-                <option value="12">12</option>
-              </select>
-            </label>
+            <input type="search" id="cart-search" class="cart-search" data-i18n-placeholder="search" placeholder="Search jingles…" />
+            <button class="mini-btn view-toggle" id="btn-view" title="Toggle grid / rows view">&#9776; ROWS</button>
+            <button class="mini-btn loop-toggle" id="btn-loop-pl" data-i18n="playlist_loop" title="Play the playlist in a continuous loop">&#8635; PLAYLIST LOOP</button>
+            <label class="cols-label" data-i18n="size">Size</label>
+            <div class="seg" id="size-seg">
+              <button class="seg-btn active" data-v="normal" title="Normal">S</button>
+              <button class="seg-btn" data-v="large" title="Large">M</button>
+              <button class="seg-btn" data-v="xlarge" title="X-Large">L</button>
+            </div>
+            <label class="cols-label" data-i18n="cols">Grid</label>
+            <select id="sel-cols">
+              <option value="4">4</option>
+              <option value="6">6</option>
+              <option value="8" selected>8</option>
+              <option value="10">10</option>
+              <option value="12">12</option>
+            </select>
           </div>
         </div>
         <div id="carts-grid" class="carts-grid"></div>
         <div id="empty-hint" class="empty-hint">
-          <p>No jingles here yet.</p>
-          <p>Click <b>+ Add Jingles…</b> or drop audio files anywhere.</p>
+          <p data-i18n="empty_hint_1">No jingles here yet.</p>
+          <p data-i18n="empty_hint_2">Click <b>+ Add Jingles…</b> or drop audio files anywhere.</p>
         </div>
       </div>
     </section>
   </main>
 
   <footer id="footer">
-    All rights Reserved - Smartchoice@2026 - Copyright @ developed by Nelson Teixeira
+    All rights Reserved - Smartchoice@2026 - Copyright @ developed by Nelson Teixeira<span id="footer-version"></span>
   </footer>
 
   <div id="ctx-menu" class="ctx-menu hidden"></div>
+
+  <div id="update-banner" class="update-banner hidden">
+    <span class="upd-text" id="upd-text">New version available</span>
+    <button class="mini-btn primary" id="upd-download">Download</button>
+    <button class="icon-btn small" id="upd-close" title="Dismiss">&#10005;</button>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
 
   <div id="modal-overlay" class="modal-overlay hidden">
     <div id="modal-box" class="modal-box"></div>
   </div>
 
+  <script src="i18n.js"></script>
   <script src="waveform.js"></script>
   <script src="player.js"></script>
   <script src="app.js"></script>

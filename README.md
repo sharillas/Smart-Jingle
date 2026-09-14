@@ -6,20 +6,45 @@ remotely from a tablet, another PC or a Bitfocus Companion surface.
 
 > All rights Reserved - Smartchoice@2026 - Copyright @ developed by Nelson Teixeira
 
+## Screenshots / Style guide
+
+### Main window (grid view) — BED MUSIC selected with its waveform
+
+![Smart Jingle grid view](docs/screenshots/grid-bed-music.png)
+
+### Jingle "Edit settings" window (IN/OUT, gain dB, colour, ID, shortcut…)
+
+![Edit settings](docs/screenshots/edit-settings.png)
+
+### Rows view (for large jingle libraries)
+
+![Rows view](docs/screenshots/rows-view.png)
+
 ## Features
 
-- **QCart buttons** — click a cart to launch the jingle instantly (hot-start, polyphonic).
-- **Waveform bar** — live waveform overview of the selected jingle with playhead.
+- **QCart buttons** — left click plays instantly (polyphonic), right click cues/selects it,
+  **GO** launches the cued jingle and advances to the next. Editable keyboard shortcuts
+  (F1–F12, 0–9, A–Z) per jingle.
+- **Playlist loop** — toggle PLAYLIST LOOP to play the playlist continuously: when a jingle
+  ends, the next one starts automatically (and wraps around).
+- **Per-jingle playback mode** — each jingle can be set to *Play once (stop at OUT)* or
+  *Loop* (jumps back to IN when reaching OUT, for beds/stingers).
+- **Waveform bar** — live waveform overview with time ruler (mouse wheel zooms), playhead and
+  a **TIME REMAINING** countdown for the jingle in play.
+- **Jingle IDs** — every jingle gets an editable ID (`J1`, `J2`, … shown on the cart). Companion
+  actions, feedbacks and variables use this ID, so Stream Deck buttons always target the right jingle.
 - **IN / OUT editing** — drag green/red markers on the waveform, type exact seconds or
   use *Set IN/OUT at playhead* while previewing. Playback always respects the points.
 - **Playlist groups** — organise jingles in multiple playlists (groups), drag & drop audio
   files, duplicate, rename, per-cart colours.
-- **Transport** — GO (relaunch selected jingle), PAUSE/RESUME, RESET, STOP ALL.
+- **Transport** — GO (launch cued jingle + advance to next), PAUSE/RESUME, RESET, STOP ALL.
 - **Remote server (API)** — built-in HTTP + WebSocket server: trigger jingles from an iPad,
   tablet or any PC. A ready-to-use web remote is served at `http://<host>:4405`.
 - **Bitfocus Companion module** — `Smart-Jingle : by Nelson Teixeira` (`.tgz`) with preset
   buttons generated from the jingles configured in the GUI, plus GO/RESET/PAUSE/STOP ALL.
 - **Modern dark UI** — blue / dark-grey template.
+- **Auto-update check** — checks GitHub Releases on startup (and via Help → Check for Updates…);
+  a banner appears when a new version is available.
 - Installers for **Windows (.exe / .msi)** and **macOS (.dmg)**.
 
 ## Download & install
@@ -55,10 +80,11 @@ To remove the warning entirely, build with a Developer ID and notarization
 | GET  | `/api/info` | App info |
 | POST | `/api/jingles/:id/play` | Launch jingle cart |
 | POST | `/api/jingles/:id/stop` | Stop jingle cart |
-| POST | `/api/transport/go` | GO — launch selected jingle |
+| POST | `/api/transport/go` | GO — launch cued jingle + advance to next |
 | POST | `/api/transport/pause` | PAUSE / RESUME all |
 | POST | `/api/transport/reset` | RESET — stop all + clear selection |
 | POST | `/api/transport/stop-all` | STOP ALL |
+| POST | `/api/transport/loop-playlist` | Toggle playlist loop |
 | POST | `/api/playlists/:id/activate` | Switch active playlist |
 | WS   | `/ws` | Live state push (JSON `{type:"state", payload}`) |
 
@@ -95,7 +121,7 @@ user-data folder (File → Reveal Data File).
 
 ## Building releases
 
-Push a tag `v*` (e.g. `v0.1.1`) — GitHub Actions builds the Windows and macOS
+Push a tag `v*` (e.g. `v0.2.0`) — GitHub Actions builds the Windows and macOS
 installers plus the Companion `.tgz` and attaches everything to the release.
 
 To fully sign and notarize the macOS build (removes the Gatekeeper warning),

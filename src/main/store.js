@@ -11,11 +11,15 @@ function defaults() {
     settings: {
       port: 4405,
       remoteEnabled: true,
+      masterVolume: 1,
+      outputDeviceId: 'default',
+      language: 'en',
     },
     ui: {
       activePlaylistId: null,
       selectedCartId: null,
       cartColumns: 8,
+      playlistLoop: false,
     },
     playlists: [],
   };
@@ -38,7 +42,40 @@ function load(defaultAudioDir) {
     save();
   }
   if (!Array.isArray(data.playlists)) data.playlists = [];
+  ensureCids();
   return data;
+}
+
+function ensureCids() {
+  const used = new Set();
+  let counter = 1;
+  let changed = false;
+  for (const p of data.playlists) {
+    for (const c of p.carts) {
+      if (!c.cid) {
+        let cid;
+        do {
+          cid = 'J' + counter++;
+        } while (used.has(cid));
+        c.cid = cid;
+        changed = true;
+      }
+      used.add(c.cid);
+    }
+  }
+  if (changed) save();
+}
+
+function nextCid() {
+  const used = new Set();
+  for (const p of getData().playlists) {
+    for (const c of p.carts) {
+      if (c.cid) used.add(c.cid);
+    }
+  }
+  let i = 1;
+  while (used.has('J' + i)) i++;
+  return 'J' + i;
 }
 
 function seedDefaults(srcDir) {
@@ -63,7 +100,7 @@ function seedDefaults(srcDir) {
       }
     }
     if (carts.length) {
-      const pl = { id: id('pl'), name: 'Default Jingles', carts };
+      const pl = { id: id('pl'), name: 'Jingle List', carts };
       data.playlists.push(pl);
       data.ui.activePlaylistId = pl.id;
     }
@@ -108,6 +145,14 @@ function setSettings(patch) {
   return save();
 }
 
+function replaceData(newData) {
+  const merged = Object.assign(defaults(), newData || {});
+  if (!Array.isArray(merged.playlists)) merged.playlists = [];
+  data = merged;
+  ensureCids();
+  return save();
+}
+
 function setUI(patch) {
   Object.assign(getData().ui, patch);
   save();
@@ -145,12 +190,15 @@ function addCart(playlistId, file) {
   const name = path.basename(file, path.extname(file));
   const cart = {
     id: id('c'),
+    cid: nextCid(),
     name,
     file,
     in: 0,
     out: null,
     volume: 1,
     color: null,
+    mode: 'once',
+    hotkey: null,
   };
   p.carts.push(cart);
   save();
@@ -160,7 +208,34 @@ function addCart(playlistId, file) {
 function updateCart(cartId, patch) {
   const found = findCart(cartId);
   if (!found) throw new Error('Cart not found');
-  Object.assign(found.cart, patch);
+  const next = Object.assign({}, patch);
+  if (next.cid !== undefined) {
+    const clean = String(next.cid).trim();
+    if (!/^[A-Za-z0-9._-]{1,32}$/.test(clean)) {
+      throw new Error('Invalid ID: only letters, numbers and . _ - (max 32 chars)');
+    }
+    const clash = getData().playlists.some((p) =>
+      p.carts.some((c) => c.id !== cartId && c.cid === clean)
+    );
+    if (clash) throw new Error('ID "' + clean + '" is already used by another jingle');
+    next.cid = clean;
+  }
+  if (next.mode !== undefined && next.mode !== 'once' && next.mode !== 'loop') {
+    next.mode = 'once';
+  }
+  if (next.hotkey !== undefined) {
+    if (next.hotkey === null || String(next.hotkey).trim() === '') {
+      next.hotkey = null;
+    } else {
+      next.hotkey = String(next.hotkey);
+      for (const p of getData().playlists) {
+        for (const c of p.carts) {
+          if (c.id !== cartId && c.hotkey === next.hotkey) c.hotkey = null;
+        }
+      }
+    }
+  }
+  Object.assign(found.cart, next);
   save();
   return getData();
 }
@@ -174,11 +249,25 @@ function removeCart(cartId) {
   return getData();
 }
 
+function moveCart(playlistId, cartId, beforeCartId) {
+  const p = findPlaylist(playlistId);
+  if (!p) return getData();
+  const from = p.carts.findIndex((c) => c.id === cartId);
+  if (from === -1) return getData();
+  const [cart] = p.carts.splice(from, 1);
+  let to = beforeCartId == null ? p.carts.length : p.carts.findIndex((c) => c.id === beforeCartId);
+  if (to === -1) to = p.carts.length;
+  p.carts.splice(to, 0, cart);
+  save();
+  return getData();
+}
+
 function publicState() {
   const d = getData();
   return {
     app: 'Smart Jingle',
-    version: app.getVersion() || '0.1.1',
+    version: app.getVersion() || '0.2.0',
+    playlistLoop: !!d.ui.playlistLoop,
     playlists: d.playlists.map((p) => ({
       id: p.id,
       name: p.name,
@@ -187,6 +276,7 @@ function publicState() {
     carts: d.playlists.flatMap((p) =>
       p.carts.map((c) => ({
         id: c.id,
+        cid: c.cid || c.id,
         name: c.name,
         playlistId: p.id,
         playlistName: p.name,
@@ -194,6 +284,8 @@ function publicState() {
         in: c.in,
         out: c.out,
         volume: c.volume,
+        mode: c.mode || 'once',
+        hotkey: c.hotkey || null,
       }))
     ),
   };
@@ -206,12 +298,14 @@ module.exports = {
   getData,
   setSettings,
   setUI,
+  replaceData,
   addPlaylist,
   renamePlaylist,
   removePlaylist,
   addCart,
   updateCart,
   removeCart,
+  moveCart,
   findCart,
   findPlaylist,
   publicState,
