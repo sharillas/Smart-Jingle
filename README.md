@@ -1,6 +1,6 @@
 # Smart Jingle
 
-QCart jingle player for radio, broadcast and live events — launch jingles like hot cues,
+Audio Jingle Player broadcast, Live/Corporte Events — launch jingles like hot cues,
 edit IN/OUT points on a waveform, organise files in playlist groups, and control everything
 remotely from a tablet, another PC or a Bitfocus Companion surface.
 
