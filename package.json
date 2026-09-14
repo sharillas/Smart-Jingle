@@ -12,9 +12,9 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder --win nsis msi --mac dmg --publish never",
-    "dist:win": "electron-builder --win nsis msi --publish never",
-    "dist:mac": "electron-builder --mac dmg --publish never",
+    "dist": "electron-builder --win --mac --publish never",
+    "dist:win": "electron-builder --win --publish never",
+    "dist:mac": "electron-builder --mac --publish never",
     "pack:companion": "node scripts/pack-companion.js",
     "release:all": "npm run pack:companion && npm run dist"
   },

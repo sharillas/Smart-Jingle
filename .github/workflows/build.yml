@@ -15,11 +15,17 @@ jobs:
           - os: windows-latest
             name: win
             command: npm run dist:win
-            artifact: 'release/*.exe;release/*.msi;release/*.yml;release/*.blockmap'
+            artifact: |
+              release/*.exe
+              release/*.msi
+              release/*.yml
+              release/*.blockmap
           - os: macos-latest
             name: mac
             command: npm run dist:mac
-            artifact: 'release/*.dmg;release/*.yml'
+            artifact: |
+              release/*.dmg
+              release/*.yml
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
