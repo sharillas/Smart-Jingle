@@ -1,0 +1,37 @@
+{
+  "type": "connection",
+  "id": "smartchoice-smart-jingle",
+  "name": "SMART-JINGLE - by Nelson Teixeira",
+  "shortname": "smart-jingle",
+  "description": "Control Smart Jingle playout (jingle carts, GO/PAUSE/RESET/STOP ALL transport, playlists) - by Nelson Teixeira",
+  "version": "0.3.2",
+  "license": "UNLICENSED",
+  "repository": "https://github.com/sharillas/Smart-Jingle",
+  "bugs": "https://github.com/sharillas/Smart-Jingle/issues",
+  "maintainers": [
+    {
+      "name": "Nelson Teixeira"
+    }
+  ],
+  "legacyIds": [
+    "smart-jingle"
+  ],
+  "runtime": {
+    "type": "node22",
+    "api": "nodejs-ipc",
+    "apiVersion": "1.0.0",
+    "entrypoint": "index.js"
+  },
+  "manufacturer": "Smartchoice",
+  "products": [
+    "SMART-JINGLE - by Nelson Teixeira"
+  ],
+  "keywords": [
+    "audio",
+    "jingles",
+    "playout",
+    "cart",
+    "radio",
+    "sound"
+  ]
+}
