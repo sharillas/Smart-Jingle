@@ -66,6 +66,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Install module dev deps (for manifest validation)
+        working-directory: companion
+        run: npm install --no-audit --no-fund
       - name: Pack companion module
         run: npm run pack:companion
       - uses: actions/upload-artifact@v4
