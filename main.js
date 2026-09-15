@@ -137,7 +137,7 @@ function createWindow() {
     minHeight: 620,
     backgroundColor: '#0e1219',
     title: 'Smart Jingle',
-    icon: path.join(__dirname, 'assets', 'icon.png'),
+    icon: path.join(__dirname, 'assets', 'icon-black.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

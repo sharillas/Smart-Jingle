@@ -1,6 +1,6 @@
 param(
   [ValidateSet("white", "black", "blue")]
-  [string]$Color = "white"
+  [string]$Color = "black"
 )
 
 Add-Type -AssemblyName System.Drawing
@@ -33,49 +33,47 @@ $monoPng = Join-Path $assets ("icon-" + $Color + ".png")
 $mono.Save($monoPng, [System.Drawing.Imaging.ImageFormat]::Png)
 Write-Host "$monoPng written"
 
-if ($Color -eq "white") {
-  $sizes = @(256, 128, 64, 48, 32, 16)
-  $pngBytes = @{}
-  foreach ($s in $sizes) {
-    $b = New-Object System.Drawing.Bitmap($s, $s)
-    $g = [System.Drawing.Graphics]::FromImage($b)
-    $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-    $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-    $g.DrawImage($mono, 0, 0, $s, $s)
-    $ms = [System.IO.MemoryStream]::new()
-    $b.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
-    $pngBytes[$s] = $ms.ToArray()
-    $g.Dispose(); $b.Dispose(); $ms.Dispose()
-  }
-
-  $msIco = [System.IO.MemoryStream]::new()
-  $bw = [System.IO.BinaryWriter]::new($msIco)
-  $bw.Write([UInt16]0)
-  $bw.Write([UInt16]1)
-  $bw.Write([UInt16]$sizes.Count)
-  $offset = 6 + 16 * $sizes.Count
-  foreach ($s in $sizes) {
-    $data = $pngBytes[$s]
-    $dim = if ($s -ge 256) { 0 } else { $s }
-    $bw.Write([Byte]$dim)
-    $bw.Write([Byte]$dim)
-    $bw.Write([Byte]0)
-    $bw.Write([Byte]0)
-    $bw.Write([UInt16]1)
-    $bw.Write([UInt16]32)
-    $bw.Write([UInt32]$data.Length)
-    $bw.Write([UInt32]$offset)
-    $offset += $data.Length
-  }
-  foreach ($s in $sizes) {
-    $bw.Write($pngBytes[$s])
-  }
-  $bw.Flush()
-  [System.IO.File]::WriteAllBytes($outIco, $msIco.ToArray())
-  $bw.Dispose()
-  $msIco.Dispose()
-  Write-Host "icon.ico regenerated (white) for window title bar / taskbar / shortcut / installer"
+$sizes = @(256, 128, 64, 48, 32, 16)
+$pngBytes = @{}
+foreach ($s in $sizes) {
+  $b = New-Object System.Drawing.Bitmap($s, $s)
+  $g = [System.Drawing.Graphics]::FromImage($b)
+  $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+  $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+  $g.DrawImage($mono, 0, 0, $s, $s)
+  $ms = [System.IO.MemoryStream]::new()
+  $b.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
+  $pngBytes[$s] = $ms.ToArray()
+  $g.Dispose(); $b.Dispose(); $ms.Dispose()
 }
+
+$msIco = [System.IO.MemoryStream]::new()
+$bw = [System.IO.BinaryWriter]::new($msIco)
+$bw.Write([UInt16]0)
+$bw.Write([UInt16]1)
+$bw.Write([UInt16]$sizes.Count)
+$offset = 6 + 16 * $sizes.Count
+foreach ($s in $sizes) {
+  $data = $pngBytes[$s]
+  $dim = if ($s -ge 256) { 0 } else { $s }
+  $bw.Write([Byte]$dim)
+  $bw.Write([Byte]$dim)
+  $bw.Write([Byte]0)
+  $bw.Write([Byte]0)
+  $bw.Write([UInt16]1)
+  $bw.Write([UInt16]32)
+  $bw.Write([UInt32]$data.Length)
+  $bw.Write([UInt32]$offset)
+  $offset += $data.Length
+}
+foreach ($s in $sizes) {
+  $bw.Write($pngBytes[$s])
+}
+$bw.Flush()
+[System.IO.File]::WriteAllBytes($outIco, $msIco.ToArray())
+$bw.Dispose()
+$msIco.Dispose()
+Write-Host "icon.ico regenerated ($Color) for window title bar / taskbar / shortcut / installer"
 
 $mono.Dispose()
 $src.Dispose()
