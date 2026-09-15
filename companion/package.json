@@ -1,6 +1,6 @@
 {
   "name": "smart-jingle",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "description": "SMART-JINGLE - by Nelson Teixeira : control jingle carts, GO/PAUSE/RESET transport and playlists of the Smart Jingle app",
   "main": "main.js",
   "type": "commonjs",

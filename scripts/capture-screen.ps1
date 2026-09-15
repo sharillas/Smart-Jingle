@@ -10,6 +10,8 @@ using System.Runtime.InteropServices;
 public class SJWin32 {
   [DllImport("user32.dll")] public static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
   [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+  [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
   public struct RECT { public int Left, Top, Right, Bottom; }
 }
 "@
@@ -17,6 +19,10 @@ public class SJWin32 {
 $proc = Get-Process "Smart Jingle" -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
 if (-not $proc) { Write-Error "Smart Jingle window not found"; exit 1 }
 
+if ([SJWin32]::IsIconic($proc.MainWindowHandle)) {
+  [void][SJWin32]::ShowWindow($proc.MainWindowHandle, 9) # SW_RESTORE
+  Start-Sleep -Milliseconds 500
+}
 [void][SJWin32]::SetForegroundWindow($proc.MainWindowHandle)
 Start-Sleep -Milliseconds 900
 
