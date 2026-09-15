@@ -23,7 +23,7 @@ class SmartJingleInstance extends InstanceBase {
     this.setActionDefinitions(this.buildActions());
     this.setFeedbackDefinitions(this.buildFeedbacks());
     this.setVariableDefinitions(this.buildVariables());
-    this.setPresetDefinitions(this.buildPresets());
+    this.setPresetDefinitions(this.buildStructure(), this.buildPresets());
     this.startPolling();
   }
 
@@ -123,7 +123,7 @@ class SmartJingleInstance extends InstanceBase {
         this.connected = true;
         this.checkFeedbacks('connected');
       }
-      this.updateStatus(InstanceStatus.Ok, 'Smart Jingle v' + (state.version || '0.1.0'));
+      this.updateStatus(InstanceStatus.Ok, 'Smart Jingle v' + (state.version || '0.3.6'));
     } catch (e) {
       if (this.connected) {
         this.connected = false;
@@ -155,7 +155,7 @@ class SmartJingleInstance extends InstanceBase {
       this.setActionDefinitions(this.buildActions());
       this.setFeedbackDefinitions(this.buildFeedbacks());
       this.setVariableDefinitions(this.buildVariables());
-      this.setPresetDefinitions(this.buildPresets());
+      this.setPresetDefinitions(this.buildStructure(), this.buildPresets());
     }
 
     const values = {};
@@ -196,7 +196,7 @@ class SmartJingleInstance extends InstanceBase {
       type: 'dropdown',
       id: 'jingle',
       label,
-      default: this.jingles.length ? this.jingles[0].id : '',
+      default: this.jingles.length ? this.keyOf(this.jingles[0]) : '',
       choices: this.jingleChoices(),
       minChoicesForSearch: 0,
     });
@@ -206,16 +206,16 @@ class SmartJingleInstance extends InstanceBase {
         name: 'Play Jingle',
         description: 'Launch a jingle cart immediately',
         options: [jingleOpt('Jingle')],
-        callback: async (evt) => {
-          await this.request('POST', '/api/jingles/' + encodeURIComponent(evt.options.jingle) + '/play');
+        callback: async (action) => {
+          await this.request('POST', '/api/jingles/' + encodeURIComponent(action.options.jingle) + '/play');
         },
       },
       stop_jingle: {
         name: 'Stop Jingle',
         description: 'Stop a running jingle cart',
         options: [jingleOpt('Jingle')],
-        callback: async (evt) => {
-          await this.request('POST', '/api/jingles/' + encodeURIComponent(evt.options.jingle) + '/stop');
+        callback: async (action) => {
+          await this.request('POST', '/api/jingles/' + encodeURIComponent(action.options.jingle) + '/stop');
         },
       },
       transport: {
@@ -235,8 +235,8 @@ class SmartJingleInstance extends InstanceBase {
             ],
           },
         ],
-        callback: async (evt) => {
-          await this.request('POST', '/api/transport/' + evt.options.command);
+        callback: async (action) => {
+          await this.request('POST', '/api/transport/' + action.options.command);
         },
       },
       select_playlist: {
@@ -252,8 +252,8 @@ class SmartJingleInstance extends InstanceBase {
             minChoicesForSearch: 0,
           },
         ],
-        callback: async (evt) => {
-          await this.request('POST', '/api/playlists/' + encodeURIComponent(evt.options.playlist) + '/activate');
+        callback: async (action) => {
+          await this.request('POST', '/api/playlists/' + encodeURIComponent(action.options.playlist) + '/activate');
         },
       },
     };
@@ -264,7 +264,7 @@ class SmartJingleInstance extends InstanceBase {
       type: 'dropdown',
       id: 'jingle',
       label: 'Jingle',
-      default: this.jingles.length ? this.jingles[0].id : '',
+      default: this.jingles.length ? this.keyOf(this.jingles[0]) : '',
       choices: this.jingleChoices(),
       minChoicesForSearch: 0,
     };
@@ -276,7 +276,7 @@ class SmartJingleInstance extends InstanceBase {
         description: 'Highlight while the jingle cart is playing',
         options: [jingleOpt],
         defaultStyle: { bgcolor: combineRgb(0, 153, 0), color: combineRgb(255, 255, 255) },
-        callback: (fb) => !!this.playing[fb.options.jingle],
+        callback: (feedback) => !!this.playing[feedback.options.jingle],
       },
       selected: {
         type: 'boolean',
@@ -284,7 +284,7 @@ class SmartJingleInstance extends InstanceBase {
         description: 'Highlight the jingle that GO will launch',
         options: [jingleOpt],
         defaultStyle: { bgcolor: combineRgb(0, 102, 255), color: combineRgb(255, 255, 255) },
-        callback: (fb) => this.selectedKey === fb.options.jingle,
+        callback: (feedback) => this.selectedKey === feedback.options.jingle,
       },
       paused: {
         type: 'boolean',
@@ -306,14 +306,14 @@ class SmartJingleInstance extends InstanceBase {
   }
 
   buildVariables() {
-    const vars = [];
+    const vars = {};
     for (const j of this.jingles) {
-      vars.push({ variableId: this.varId(j), name: `Jingle "${this.keyOf(j)} - ${j.name}" status` });
+      vars[this.varId(j)] = { name: `Jingle "${this.keyOf(j)} - ${j.name}" status` };
     }
-    vars.push({ variableId: 'paused', name: 'Transport state' });
-    vars.push({ variableId: 'playing_count', name: 'Number of jingles playing' });
-    vars.push({ variableId: 'selected', name: 'Selected jingle name' });
-    vars.push({ variableId: 'playlist', name: 'Active playlist name' });
+    vars.paused = { name: 'Transport state' };
+    vars.playing_count = { name: 'Number of jingles playing' };
+    vars.selected = { name: 'Selected jingle name' };
+    vars.playlist = { name: 'Active playlist name' };
     return vars;
   }
 
@@ -327,107 +327,98 @@ class SmartJingleInstance extends InstanceBase {
     }
   }
 
+  buildStructure() {
+    const sections = [];
+    sections.push({
+      id: 'sj-transport',
+      name: 'Transport',
+      definitions: ['sj-go', 'sj-pause', 'sj-reset', 'sj-stop-all'],
+    });
+    const jingleIds = this.jingles.map((j) => 'sj-j-' + this.keyOf(j));
+    if (jingleIds.length) {
+      sections.push({
+        id: 'sj-jingles',
+        name: 'Jingles',
+        definitions: jingleIds,
+      });
+    }
+    if (!this.jingles.length) {
+      sections.push({
+        id: 'sj-placeholder',
+        name: 'Smart Jingle (no jingles configured)',
+        definitions: ['sj-placeholder'],
+      });
+    }
+    return sections;
+  }
+
   buildPresets() {
     const presets = {};
 
-    const mkBtn = (x, y, text, steps, feedbacks, opts) => {
-      const b = {
-        type: 'button',
-        position: { x, y },
-        size: { width: 1, height: 1 },
+    const mkTransport = (id, text, command, feedbacks) => {
+      presets[id] = {
+        type: 'simple',
+        category: 'Smart Jingle',
+        name: 'Transport - ' + text.replace('\n', ' '),
         style: {
           text,
           size: 'auto',
           color: combineRgb(255, 255, 255),
           bgcolor: combineRgb(0, 0, 0),
         },
-        steps: steps,
+        steps: [{ down: [{ actionId: 'transport', options: { command } }], up: [] }],
         feedbacks: feedbacks || [],
       };
-      if (opts && opts.style) {
-        b.style = Object.assign(b.style, opts.style);
-      }
-      return b;
     };
 
-    const transportButtons = [
-      mkBtn(0, 0, 'GO', [{ down: [{ actionId: 'transport', options: { command: 'go' } }], up: [] }], [
-        { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
-      ]),
-      mkBtn(1, 0, 'PAUSE', [{ down: [{ actionId: 'transport', options: { command: 'pause' } }], up: [] }], [
-        { feedbackId: 'paused', options: {}, style: { bgcolor: combineRgb(245, 158, 11), color: combineRgb(0, 0, 0) } },
-        { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
-      ]),
-      mkBtn(2, 0, 'RESET', [{ down: [{ actionId: 'transport', options: { command: 'reset' } }], up: [] }], [
-        { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
-      ]),
-      mkBtn(3, 0, 'STOP\nALL', [{ down: [{ actionId: 'transport', options: { command: 'stop-all' } }], up: [] }], [
-        { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
-      ]),
-    ];
+    mkTransport('sj-go', 'GO', 'go', [
+      { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
+    ]);
+    mkTransport('sj-pause', 'PAUSE', 'pause', [
+      { feedbackId: 'paused', options: {}, style: { bgcolor: combineRgb(245, 158, 11), color: combineRgb(0, 0, 0) } },
+      { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
+    ]);
+    mkTransport('sj-reset', 'RESET', 'reset', [
+      { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
+    ]);
+    mkTransport('sj-stop-all', 'STOP\nALL', 'stop-all', [
+      { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
+    ]);
 
-    presets['smartjingle-transport'] = {
-      id: 'smartjingle-transport',
-      type: 'button',
-      category: 'Smart Jingle',
-      name: 'Transport (GO/PAUSE/RESET/STOP)',
-      style: { text: 'Smart Jingle\\nTransport', size: 'auto', color: combineRgb(255, 255, 255), bgcolor: combineRgb(0, 0, 0) },
-      size: { width: 4, height: 1 },
-      buttons: transportButtons,
-      feedbacks: [],
-    };
-
-    const PER_PRESET = 8;
-    for (let i = 0; i < this.jingles.length; i += PER_PRESET) {
-      const block = this.jingles.slice(i, i + PER_PRESET);
-      const buttons = block.map((j, idx) => {
-        const x = idx % 4;
-        const y = Math.floor(idx / 4);
-        const key = this.keyOf(j);
-        const color = this.hexToRgb(j.color);
-        const baseStyle = color
-          ? { bgcolor: color, color: combineRgb(255, 255, 255) }
-          : { bgcolor: combineRgb(0, 0, 0), color: combineRgb(255, 255, 255) };
-        return mkBtn(
-          x,
-          y,
-          j.name,
-          [{ down: [{ actionId: 'play_jingle', options: { jingle: key } }], up: [] }],
-          [
-            { feedbackId: 'playing', options: { jingle: key }, style: { bgcolor: combineRgb(0, 153, 0) } },
-            { feedbackId: 'selected', options: { jingle: key }, style: { bgcolor: combineRgb(0, 102, 255) } },
-          ],
-          { style: baseStyle }
-        );
-      });
-      presets['smartjingle-jingles-' + (i / PER_PRESET + 1)] = {
-        id: 'smartjingle-jingles-' + (i / PER_PRESET + 1),
-        type: 'button',
+    for (const j of this.jingles) {
+      const key = this.keyOf(j);
+      const color = this.hexToRgb(j.color);
+      presets['sj-j-' + key] = {
+        type: 'simple',
         category: 'Smart Jingle',
-        name: 'Jingles ' + (i + 1) + '-' + (i + block.length),
+        name: 'Jingle ' + key + ' - ' + j.name,
         style: {
-          text: 'Smart Jingle\\nJingles ' + (i + 1) + '-' + (i + block.length),
+          text: j.name,
           size: 'auto',
           color: combineRgb(255, 255, 255),
-          bgcolor: combineRgb(0, 0, 0),
+          bgcolor: color || combineRgb(0, 0, 0),
         },
-        size: { width: 4, height: 2 },
-        buttons,
-        feedbacks: [],
+        steps: [{ down: [{ actionId: 'play_jingle', options: { jingle: key } }], up: [] }],
+        feedbacks: [
+          { feedbackId: 'playing', options: { jingle: key }, style: { bgcolor: combineRgb(0, 153, 0) } },
+          { feedbackId: 'selected', options: { jingle: key }, style: { bgcolor: combineRgb(0, 102, 255) } },
+        ],
       };
     }
 
     if (!this.jingles.length) {
-      presets['smartjingle-placeholder'] = {
-        id: 'smartjingle-placeholder',
-        type: 'button',
+      presets['sj-placeholder'] = {
+        type: 'simple',
         category: 'Smart Jingle',
         name: 'Smart Jingle (no jingles configured)',
-        style: { text: 'Configure jingles\\nin Smart Jingle', size: 'auto', color: combineRgb(255, 255, 255), bgcolor: combineRgb(0, 0, 0) },
+        style: {
+          text: 'Configure jingles\nin Smart Jingle',
+          size: 'auto',
+          color: combineRgb(255, 255, 255),
+          bgcolor: combineRgb(0, 0, 0),
+        },
         steps: [],
-        feedbacks: [
-          { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
-        ],
+        feedbacks: [{ feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } }],
       };
     }
 

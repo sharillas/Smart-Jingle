@@ -20,7 +20,7 @@ const manifest = {
   bugs: 'https://github.com/sharillas/Smart-Jingle/issues',
   maintainers: [{ name: 'Nelson Teixeira' }],
   legacyIds: ['smart-jingle'],
-  runtime: { type: 'node22', api: 'nodejs-ipc', apiVersion: '1.14.0', entrypoint: 'index.js' },
+  runtime: { type: 'node22', api: 'nodejs-ipc', apiVersion: '2.1.0', entrypoint: 'index.js' },
   manufacturer: 'Smartchoice',
   products: ['SMART-JINGLE - by Nelson Teixeira'],
   keywords: ['audio', 'jingles', 'playout', 'cart', 'radio', 'sound'],
@@ -34,12 +34,12 @@ const shippedPackageJson = {
   type: 'commonjs',
   license: 'UNLICENSED',
   dependencies: {
-    '@companion-module/base': '^1.14.0',
+    '@companion-module/base': '^2.1.0',
   },
 };
 
 try {
-  const { validateManifest } = require(path.join(companionDir, 'node_modules', '@companion-module', 'base'));
+  const { validateManifest } = require(path.join(companionDir, 'node_modules', '@companion-module', 'base', 'dist', 'manifest.js'));
   validateManifest(manifest, false);
   console.log('Manifest validated against @companion-module/base (Companion validator)');
 } catch (e) {
