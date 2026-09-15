@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('sjapi', {
   getVersion: () => ipcRenderer.invoke('app:version'),
   sendState: (state) => ipcRenderer.send('state:update', state),
   sendDevices: (list) => ipcRenderer.send('devices:list', list),
+  notifyHotkeys: () => ipcRenderer.send('hotkeys:update'),
+  notifySettings: () => ipcRenderer.send('settings:changed'),
   projectSaveAs: () => ipcRenderer.invoke('project:save-as'),
   projectSave: () => ipcRenderer.invoke('project:save'),
   projectOpen: () => ipcRenderer.invoke('project:open'),

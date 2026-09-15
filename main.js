@@ -1,9 +1,10 @@
-const { app, BrowserWindow, Menu, dialog, protocol, shell, session } = require('electron');
+const { app, BrowserWindow, Menu, dialog, protocol, shell, session, globalShortcut } = require('electron');
 const path = require('node:path');
 const store = require('./src/main/store');
 const media = require('./src/main/media');
 const server = require('./src/main/server');
 const ipc = require('./src/main/ipc');
+const oscServer = require('./src/main/osc');
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -98,6 +99,30 @@ function setLanguage(lang) {
   store.setSettings({ language: lang });
   sendToRenderer({ cmd: 'language-changed', language: lang });
   buildMenu();
+}
+
+function registerGlobalHotkeys() {
+  globalShortcut.unregisterAll();
+  const data = store.getData();
+  const pl = data.playlists.find((p) => p.id === data.ui.activePlaylistId) || data.playlists[0];
+  if (!pl) return;
+  for (const cart of pl.carts) {
+    const hk = cart.hotkey;
+    if (!hk) continue;
+    let accelerator = null;
+    if (/^F([1-9]|1[0-2])$/.test(hk)) accelerator = hk;
+    else if (/^[0-9]$/.test(hk)) accelerator = hk;
+    else if (/^[A-Z]$/.test(hk)) accelerator = 'CommandOrControl+Alt+' + hk;
+    if (!accelerator) continue;
+    try {
+      const ok = globalShortcut.register(accelerator, () => {
+        sendToRenderer({ cmd: 'global-hotkey', hotkey: hk });
+      });
+      if (!ok) console.log('SHORTCUT: failed to register', accelerator);
+    } catch (e) {
+      /* ignore */
+    }
+  }
 }
 
 function createWindow() {
@@ -350,6 +375,15 @@ function buildMenu() {
           checked: settings.remoteEnabled !== false,
           click: (item) => toggleRemoteServer(item.checked),
         },
+        {
+          label: 'OSC Server Enabled',
+          type: 'checkbox',
+          checked: settings.oscEnabled === true,
+          click: (item) => {
+            oscServer.setEnabled(item.checked);
+            buildMenu();
+          },
+        },
       ],
     },
     {
@@ -420,11 +454,18 @@ app.whenReady().then(async () => {
   store.load(path.join(__dirname, 'assets', 'default-audio'));
   media.register();
   server.start(store, app.getVersion(), () => mainWindow, (state) => (latestState = state));
+  oscServer.start(store, (cmd) => sendToRenderer(cmd));
   ipc.register(store, () => mainWindow, (devices) => {
     audioDevices = devices;
     buildMenu();
+  }, () => {
+    registerGlobalHotkeys();
+  }, () => {
+    oscServer.restart();
+    buildMenu();
   });
   buildMenu();
+  registerGlobalHotkeys();
   await createWindow();
 
   if (process.env.SMART_JINGLE_OPEN_EDITOR === '1') {
@@ -456,4 +497,6 @@ app.on('before-quit', () => {
 
 app.on('will-quit', () => {
   server.stop();
+  oscServer.stop();
+  globalShortcut.unregisterAll();
 });

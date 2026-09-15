@@ -91,9 +91,33 @@
       var state = { playlists: [], carts: [], playing: [], paused: false, selectedCartId: null, activePlaylistId: null };
       var ws = null;
       var currentPlaylist = null;
+      var pin = '';
+      try { pin = localStorage.getItem('sj_pin') || ''; } catch (e) {}
+
+      function qs() {
+        return pin ? '?pin=' + encodeURIComponent(pin) : '';
+      }
+
+      function askPin() {
+        var p = prompt('PIN required to control Smart Jingle:');
+        if (p !== null) {
+          pin = p.trim();
+          try { localStorage.setItem('sj_pin', pin); } catch (e) {}
+          loadState();
+        }
+      }
 
       function post(path) {
-        fetch(path, { method: 'POST' }).catch(function () {});
+        fetch(path + qs(), { method: 'POST' }).then(function (r) {
+          if (r.status === 401) askPin();
+        }).catch(function () {});
+      }
+
+      function loadState() {
+        fetch('/api/state' + qs()).then(function (r) {
+          if (r.status === 401) { askPin(); return Promise.reject(); }
+          return r.json();
+        }).then(apply).catch(function () {});
       }
 
       function render() {
@@ -156,7 +180,7 @@
       function connect() {
         var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
         try {
-          ws = new WebSocket(proto + location.host + '/ws');
+          ws = new WebSocket(proto + location.host + '/ws' + qs());
         } catch (e) {
           ws = null;
         }
@@ -183,7 +207,7 @@
       document.getElementById('f-stop').onclick = function () { post('/api/transport/stop-all'); };
       document.getElementById('f-loop').onclick = function () { post('/api/transport/loop-playlist'); };
 
-      fetch('/api/state').then(function (r) { return r.json(); }).then(apply).catch(function () {});
+      loadState();
       connect();
     })();
   </script>

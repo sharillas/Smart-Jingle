@@ -7,12 +7,16 @@ const AUDIO_EXT = ['mp3', 'wav', 'ogg', 'oga', 'flac', 'm4a', 'aac', 'opus', 'we
 let storeRef = null;
 let getWin = null;
 let onDevicesList = null;
+let onHotkeysUpdate = null;
+let onSettingsChanged = null;
 let lastProjectPath = null;
 
-function register(store, winGetter, devicesCallback) {
+function register(store, winGetter, devicesCallback, hotkeysCallback, settingsCallback) {
   storeRef = store;
   getWin = winGetter;
   onDevicesList = devicesCallback || null;
+  onHotkeysUpdate = hotkeysCallback || null;
+  onSettingsChanged = settingsCallback || null;
 
   ipcMain.handle('data:get', () => storeRef.getData());
   ipcMain.handle('data:settings:set', (_e, settings) => {
@@ -76,6 +80,14 @@ function register(store, winGetter, devicesCallback) {
 
   ipcMain.on('devices:list', (_e, list) => {
     if (onDevicesList && Array.isArray(list)) onDevicesList(list);
+  });
+
+  ipcMain.on('hotkeys:update', () => {
+    if (onHotkeysUpdate) onHotkeysUpdate();
+  });
+
+  ipcMain.on('settings:changed', () => {
+    if (onSettingsChanged) onSettingsChanged();
   });
 
   ipcMain.handle('project:save-as', async () => {

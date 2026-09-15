@@ -9,6 +9,9 @@
   let masterVolume = 1;
   let outputDeviceId = 'default';
 
+  let vuCtx = null;
+  let levels = {};
+
   function setEndedHandler(fn) {
     endedHandler = fn;
   }
@@ -17,7 +20,10 @@
     masterVolume = Math.min(1, Math.max(0, Number(v) || 0));
     for (const inst of active.values()) {
       try {
-        inst.audio.volume = (inst.baseVolume || 1) * masterVolume;
+        inst.baseTarget = (inst.baseVolume || 1) * masterVolume;
+        if (!inst.fading && !inst.fadeInProgress) {
+          inst.audio.volume = inst.baseTarget;
+        }
       } catch (e) {
         /* ignore */
       }
@@ -56,20 +62,114 @@
     return cart.out !== null && cart.out !== undefined && cart.out > 0 ? cart.out : Infinity;
   }
 
+  function connectVU(inst) {
+    if (outputDeviceId && outputDeviceId !== 'default') return;
+    try {
+      if (!vuCtx) {
+        vuCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (vuCtx.state === 'suspended') vuCtx.resume().catch(() => {});
+      const src = vuCtx.createMediaElementSource(inst.audio);
+      const analyser = vuCtx.createAnalyser();
+      analyser.fftSize = 1024;
+      src.connect(analyser);
+      analyser.connect(vuCtx.destination);
+      inst.analyser = analyser;
+      inst.level = 0;
+    } catch (e) {
+      /* VU unavailable */
+    }
+  }
+
+  function rampVolume(inst, from, to, seconds, done) {
+    inst.fading = true;
+    const start = performance.now();
+    const dur = Math.max(1, (seconds || 0) * 1000);
+    const step = () => {
+      if (inst.stopped) return;
+      const t = Math.min(1, (performance.now() - start) / dur);
+      try {
+        inst.audio.volume = from + (to - from) * t;
+      } catch (e) {
+        /* ignore */
+      }
+      if (t < 1) {
+        inst.rampTimer = requestAnimationFrame(step);
+      } else {
+        inst.fading = false;
+        if (done) done();
+      }
+    };
+    inst.rampTimer = requestAnimationFrame(step);
+  }
+
+  function stopCart(cartId, opts) {
+    const inst = active.get(cartId);
+    if (!inst) return false;
+    const instant = opts && opts.instant;
+    const fade = (opts && opts.fade) !== false && !instant && inst.fadeOut > 0 && !inst.fadeInProgress;
+
+    if (fade && !inst.fading) {
+      const doStop = () => {
+        if (inst.stopped) return;
+        finishStop(inst, cartId);
+      };
+      rampVolume(inst, inst.audio.volume, 0, inst.fadeOut, doStop);
+      return true;
+    }
+    finishStop(inst, cartId);
+    return true;
+  }
+
+  function finishStop(inst, cartId) {
+    inst.stopped = true;
+    active.delete(cartId);
+    if (levels[cartId]) delete levels[cartId];
+    try {
+      if (inst.rampTimer) cancelAnimationFrame(inst.rampTimer);
+      inst.audio.pause();
+      inst.audio.src = '';
+      inst.audio.load();
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   function play(cartId, getCart) {
     const cart = getCart(cartId);
     if (!cart) return false;
+    if (cart.lock && active.has(cartId)) return false;
 
-    stopCart(cartId);
+    stopCart(cartId, { instant: true });
 
     const audio = new Audio(audioUrl(cart.file));
-    audio.volume = Math.min(1, Math.max(0, cart.volume ?? 1)) * masterVolume;
-    applySink(audio);
     const inS = cart.in || 0;
     const outS = cartEnd(cart);
     const loop = cart.mode === 'loop';
-    const inst = { id: cartId, audio, inS, outS, loop, baseVolume: cart.volume ?? 1, startedAt: Date.now() - inS * 1000, stopped: false };
+    const inst = {
+      id: cartId,
+      audio,
+      inS,
+      outS,
+      loop,
+      baseVolume: cart.volume ?? 1,
+      baseTarget: (cart.volume ?? 1) * masterVolume,
+      fadeIn: Math.max(0, cart.fadeIn || 0),
+      fadeOut: Math.max(0, cart.fadeOut || 0),
+      startedAt: Date.now() - inS * 1000,
+      stopped: false,
+      fading: false,
+      fadeInProgress: false,
+      rampTimer: null,
+      analyser: null,
+      level: 0,
+    };
     active.set(cartId, inst);
+    levels[cartId] = 0;
+
+    audio.volume = inst.fadeIn > 0 ? 0 : inst.baseTarget;
+    applySink(audio);
+    if (!(outputDeviceId && outputDeviceId !== 'default')) connectVU(inst);
 
     audio.addEventListener('loadedmetadata', () => {
       if (inst.stopped || inst.audio !== audio) return;
@@ -89,7 +189,7 @@
             /* ignore */
           }
         } else {
-          stopCart(cartId);
+          stopCart(cartId, { fade: false });
           if (endedHandler) {
             try {
               endedHandler(cartId);
@@ -111,7 +211,7 @@
         }
         return;
       }
-      stopCart(cartId);
+      finishStop(inst, cartId);
       if (endedHandler) {
         try {
           endedHandler(cartId);
@@ -123,9 +223,16 @@
     audio.addEventListener('error', () => {
       if (inst.stopped) return;
       console.error('PLAYER: audio error', cartId, audio.error ? audio.error.code : '?');
-      stopCart(cartId);
+      finishStop(inst, cartId);
     });
-    audio.play().catch(() => stopCart(cartId));
+    audio.play().catch(() => finishStop(inst, cartId));
+
+    if (inst.fadeIn > 0) {
+      inst.fadeInProgress = true;
+      rampVolume(inst, 0, inst.baseTarget, inst.fadeIn, () => {
+        inst.fadeInProgress = false;
+      });
+    }
 
     selectedCartId = cartId;
     lastPlayedId = cartId;
@@ -133,27 +240,12 @@
     return true;
   }
 
-  function stopCart(cartId) {
-    const inst = active.get(cartId);
-    if (!inst) return false;
-    inst.stopped = true;
-    active.delete(cartId);
-    try {
-      inst.audio.pause();
-      inst.audio.src = '';
-      inst.audio.load();
-    } catch (e) {
-      /* ignore */
-    }
-    return true;
-  }
-
-  function stopAll() {
-    for (const id of [...active.keys()]) stopCart(id);
+  function stopAll(opts) {
+    for (const id of [...active.keys()]) stopCart(id, opts);
   }
 
   function reset() {
-    stopAll();
+    stopAll({ instant: true });
     paused = false;
     selectedCartId = null;
   }
@@ -165,6 +257,7 @@
     }
     paused = !paused;
     for (const inst of active.values()) {
+      if (inst.stopped || inst.fading) continue;
       if (paused) inst.audio.pause();
       else inst.audio.play().catch(() => {});
     }
@@ -179,6 +272,29 @@
     const ok = play(list[idx], getCart);
     selectedCartId = list[(idx + 1) % list.length];
     return ok;
+  }
+
+  function readLevels() {
+    const out = {};
+    if (vuCtx) {
+      const buf = new Uint8Array(1024);
+      for (const inst of active.values()) {
+        if (!inst.analyser || inst.stopped) continue;
+        try {
+          inst.analyser.getByteTimeDomainData(buf);
+          let peak = 0;
+          for (let i = 0; i < buf.length; i += 4) {
+            const v = Math.abs((buf[i] - 128) / 128);
+            if (v > peak) peak = v;
+          }
+          inst.level = Math.max(inst.level * 0.7, peak);
+          out[inst.id] = inst.level;
+        } catch (e) {
+          /* ignore */
+        }
+      }
+    }
+    return out;
   }
 
   function state(getCart) {
@@ -216,6 +332,7 @@
     setEndedHandler,
     setMasterVolume,
     setOutputDevice,
+    readLevels,
     isActive: (id) => active.has(id),
     getSelected: () => selectedCartId,
     setSelected: (id) => (selectedCartId = id),

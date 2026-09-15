@@ -54,6 +54,13 @@ class SmartJingleInstance extends InstanceBase {
         min: 1,
         max: 65535,
       },
+      {
+        type: 'textinput',
+        id: 'pin',
+        label: 'Remote PIN (leave empty if none)',
+        width: 12,
+        default: '',
+      },
     ];
   }
 
@@ -78,12 +85,15 @@ class SmartJingleInstance extends InstanceBase {
   request(method, path) {
     const host = (this.config && this.config.host) || '127.0.0.1';
     const port = Number((this.config && this.config.port) || 4405);
+    const pin = (this.config && this.config.pin) || '';
+    let p = path;
+    if (pin) p += (p.includes('?') ? '&' : '?') + 'pin=' + encodeURIComponent(pin);
     return new Promise((resolve, reject) => {
       const req = http.request(
         {
           host,
           port,
-          path,
+          path: p,
           method,
           timeout: TIMEOUT_MS,
         },
@@ -307,6 +317,16 @@ class SmartJingleInstance extends InstanceBase {
     return vars;
   }
 
+  hexToRgb(color) {
+    try {
+      const m = /^#?([0-9a-f]{6})$/i.exec(String(color || ''));
+      if (!m) return null;
+      return parseInt(m[1], 16);
+    } catch (e) {
+      return null;
+    }
+  }
+
   buildPresets() {
     const presets = {};
 
@@ -323,8 +343,10 @@ class SmartJingleInstance extends InstanceBase {
         },
         steps: steps,
         feedbacks: feedbacks || [],
-        ...opts,
       };
+      if (opts && opts.style) {
+        b.style = Object.assign(b.style, opts.style);
+      }
       return b;
     };
 
@@ -362,6 +384,10 @@ class SmartJingleInstance extends InstanceBase {
         const x = idx % 4;
         const y = Math.floor(idx / 4);
         const key = this.keyOf(j);
+        const color = this.hexToRgb(j.color);
+        const baseStyle = color
+          ? { bgcolor: color, color: combineRgb(255, 255, 255) }
+          : { bgcolor: combineRgb(0, 0, 0), color: combineRgb(255, 255, 255) };
         return mkBtn(
           x,
           y,
@@ -370,7 +396,8 @@ class SmartJingleInstance extends InstanceBase {
           [
             { feedbackId: 'playing', options: { jingle: key }, style: { bgcolor: combineRgb(0, 153, 0) } },
             { feedbackId: 'selected', options: { jingle: key }, style: { bgcolor: combineRgb(0, 102, 255) } },
-          ]
+          ],
+          { style: baseStyle }
         );
       });
       presets['smartjingle-jingles-' + (i / PER_PRESET + 1)] = {

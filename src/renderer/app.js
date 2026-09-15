@@ -61,6 +61,7 @@
           renderPlaylists();
           renderCarts();
           pushState(true);
+          window.sjapi.notifyHotkeys();
         }
       });
       li.addEventListener('contextmenu', (e) => {
@@ -74,6 +75,7 @@
                 renderPlaylists();
                 renderCarts();
                 pushState(true);
+                window.sjapi.notifyHotkeys();
               }
             } },
         ]);
@@ -175,6 +177,7 @@
         await refreshData();
         renderCarts();
         pushState(true);
+        window.sjapi.notifyHotkeys();
       });
     };
 
@@ -402,6 +405,12 @@
             <input type="number" id="ed-db" step="0.5" min="-60" max="12" value="0" style="width:90px;">
           </div>
         </div>
+        <div class="field" style="display:flex;gap:10px;">
+          <div style="flex:1"><label>${t('fade_in')}</label><input type="number" id="ed-fadein" min="0" step="5" value="${Math.round((found.cart.fadeIn || 0) * 1000)}"></div>
+          <div style="flex:1"><label>${t('fade_out')}</label><input type="number" id="ed-fadeout" min="0" step="5" value="${Math.round((found.cart.fadeOut || 0) * 1000)}"></div>
+        </div>
+        <div class="field"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="ed-lock" ${found.cart.lock ? 'checked' : ''} style="width:auto;"> ${t('retrigger_lock')}</label></div>
         <div class="field"><label>${t('color')}</label><div class="swatches" id="ed-swatches"></div><input type="color" id="ed-color-custom" value="${found.cart.color || '#2f81f7'}"></div>
         <div class="field" style="display:flex;gap:10px;">
           <div style="flex:1"><label>${t('name')}</label><input type="text" id="ed-name" value="${escapeHtml(found.cart.name)}"></div>
@@ -704,6 +713,7 @@
       renderCarts();
       updateSelectionUI();
       pushState(true);
+      window.sjapi.notifyHotkeys();
     });
 
     const previewLoop = setInterval(() => {
@@ -743,6 +753,9 @@
           mode: edMode,
           hotkey: edHotkey,
           file: edFile,
+          fadeIn: (parseFloat($('#ed-fadein').value) || 0) / 1000,
+          fadeOut: (parseFloat($('#ed-fadeout').value) || 0) / 1000,
+          lock: $('#ed-lock').checked,
         });
       } catch (e) {
         const msg = String(e && e.message ? e.message : e).replace(/^Error invoking remote method '[^']+': Error: /, '');
@@ -755,6 +768,7 @@
       renderCarts();
       drawWavebar();
       pushState(true);
+      window.sjapi.notifyHotkeys();
     });
 
     loadWave(cartId).then((w) => {
@@ -875,6 +889,10 @@
       <div class="field"><label>${t('remote_port')}</label><input type="number" id="set-port" value="${s.port}"></div>
       <div class="field"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
         <input type="checkbox" id="set-remote" ${s.remoteEnabled !== false ? 'checked' : ''} style="width:auto;"> ${t('enable_remote')}</label></div>
+      <div class="field"><label>${t('remote_pin')}</label><input type="text" id="set-pin" value="${escapeHtml(s.remotePin || '')}" placeholder="1234"></div>
+      <div class="field"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+        <input type="checkbox" id="set-osc" ${s.oscEnabled === true ? 'checked' : ''} style="width:auto;"> ${t('osc_enable')}
+        <input type="number" id="set-osc-port" value="${s.oscPort || 4410}" style="width:90px;margin-left:8px;"></label></div>
       <div class="field"><label>${t('audio_device')}</label>
         <div style="display:flex;gap:8px;">
           <select id="set-device" style="flex:1;"></select>
@@ -922,12 +940,16 @@
       await window.sjapi.setSettings({
         port: parseInt($('#set-port').value, 10) || 4405,
         remoteEnabled: $('#set-remote').checked,
+        remotePin: ($('#set-pin').value || '').trim(),
         outputDeviceId: sel.value || 'default',
         masterVolume: data.settings.masterVolume,
+        oscEnabled: $('#set-osc').checked,
+        oscPort: parseInt($('#set-osc-port').value, 10) || 4410,
       });
       SJPlayer.setOutputDevice(sel.value || 'default');
       await refreshData();
       overlay.classList.add('hidden');
+      window.sjapi.notifySettings();
     });
   }
 
@@ -957,6 +979,9 @@
           volume: c.volume,
           mode: c.mode || 'once',
           hotkey: c.hotkey || null,
+          fadeIn: c.fadeIn || 0,
+          fadeOut: c.fadeOut || 0,
+          lock: !!c.lock,
         }))
       ),
     };
@@ -989,6 +1014,7 @@
         updateSelectionUI();
         break;
       case 'pause':
+        SJPlayer.togglePause();
         updatePauseButton();
         break;
       case 'reset':
@@ -1010,6 +1036,7 @@
           renderPlaylists();
           renderCarts();
           pushState(true);
+          window.sjapi.notifyHotkeys();
         }
         break;
       }
@@ -1025,6 +1052,19 @@
       case 'set-device':
         SJPlayer.setOutputDevice(cmd.deviceId);
         break;
+      case 'global-hotkey': {
+        const pl = activePlaylist();
+        if (pl) {
+          const cart = pl.carts.find((c) => c.hotkey === cmd.hotkey);
+          if (cart) {
+            SJPlayer.play(cart.id, (id) => findCart(id)?.cart);
+            updateSelectionUI();
+            updatePauseButton();
+            pushState(true);
+          }
+        }
+        break;
+      }
       case 'edit-cart': {
         const sel = SJPlayer.getSelected();
         if (sel) openEditor(sel);
@@ -1085,6 +1125,7 @@
     renderPlaylists();
     renderCarts();
     pushState(true);
+    window.sjapi.notifyHotkeys();
   }
 
   async function addPlaylist() {
@@ -1151,6 +1192,25 @@
       }
     }
 
+    const onair = $('#onair');
+    onair.classList.toggle('on', st.playing.length > 0);
+    const vu = $('#vu-meter');
+    if (vu && vu.children.length) {
+      let peak = 0;
+      const lvls = SJPlayer.readLevels();
+      for (const id of Object.keys(lvls)) {
+        if (lvls[id] > peak) peak = lvls[id];
+      }
+      if (!st.playing.length) peak = 0;
+      const lit = Math.min(vu.children.length, Math.round(peak * vu.children.length * 1.15));
+      for (let i = 0; i < vu.children.length; i++) {
+        const seg = vu.children[i];
+        seg.classList.toggle('lit', i < lit);
+        seg.classList.toggle('warn', i < lit && i >= vu.children.length - 4);
+        seg.classList.toggle('hot', i < lit && i >= vu.children.length - 1);
+      }
+    }
+
     pushState(false);
     requestAnimationFrame(tick);
   }
@@ -1165,6 +1225,13 @@
     renderPlaylists();
     renderCarts();
     drawWavebar();
+
+    const vu = $('#vu-meter');
+    for (let i = 0; i < 16; i++) {
+      const s = document.createElement('span');
+      s.className = 'vu-seg';
+      vu.appendChild(s);
+    }
 
     SJPlayer.setMasterVolume(data.settings.masterVolume ?? 1);
     SJPlayer.setOutputDevice(data.settings.outputDeviceId || 'default');

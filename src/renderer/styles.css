@@ -89,6 +89,39 @@ body {
 
 .header-right { display: flex; align-items: center; gap: 16px; margin-left: auto; }
 
+.vu-wrap { display: flex; align-items: center; gap: 8px; }
+.vu-onair {
+  font-family: 'Barlow Condensed', 'Segoe UI', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #4a5568;
+  border: 1px solid #2a3346;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+.vu-onair.on {
+  color: #fff;
+  background: linear-gradient(180deg, #d64545, #a11f1f);
+  border-color: #e35d5d;
+  box-shadow: 0 0 12px -3px rgba(239, 68, 68, .7);
+  animation: vu-pulse 1.6s ease-in-out infinite;
+}
+@keyframes vu-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .75; }
+}
+.vu-meter { display: flex; gap: 2px; }
+.vu-meter .vu-seg {
+  width: 5px; height: 22px;
+  border-radius: 2px;
+  background: #20283a;
+  border: 1px solid #2a3346;
+}
+.vu-meter .vu-seg.lit { background: #2fd573; box-shadow: 0 0 5px -1px rgba(47, 213, 115, .8); }
+.vu-meter .vu-seg.lit.warn { background: #f59e0b; box-shadow: 0 0 5px -1px rgba(245, 158, 11, .8); }
+.vu-meter .vu-seg.lit.hot { background: #ef4444; box-shadow: 0 0 5px -1px rgba(239, 68, 68, .8); }
+
 .transport { display: flex; gap: 8px; }
 
 .master-vol {

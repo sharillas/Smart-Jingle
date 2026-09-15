@@ -5,15 +5,19 @@ const crypto = require('node:crypto');
 
 let dataPath = null;
 let data = null;
+let lastBackupAt = 0;
 
 function defaults() {
   return {
     settings: {
       port: 4405,
       remoteEnabled: true,
+      remotePin: '',
       masterVolume: 1,
       outputDeviceId: 'default',
       language: 'en',
+      oscEnabled: false,
+      oscPort: 4410,
     },
     ui: {
       activePlaylistId: null,
@@ -96,7 +100,7 @@ function seedDefaults(srcDir) {
         fs.copyFileSync(src, dst);
       }
       if (fs.existsSync(dst)) {
-        carts.push({ id: id('c'), name: f.name, file: dst, in: 0, out: null, volume: 1, color: null });
+        carts.push({ id: id('c'), name: f.name, file: dst, in: 0, out: null, volume: 1, color: null, mode: 'once', hotkey: null, fadeIn: 0.01, fadeOut: 0.01, lock: false });
       }
     }
     if (carts.length) {
@@ -113,10 +117,29 @@ function save() {
   try {
     fs.mkdirSync(path.dirname(getPath()), { recursive: true });
     fs.writeFileSync(getPath(), JSON.stringify(data, null, 2), 'utf8');
+    rotateBackups();
   } catch (e) {
     console.error('STORE: save failed', e);
   }
   return data;
+}
+
+function rotateBackups() {
+  try {
+    const now = Date.now();
+    if (now - lastBackupAt < 60000) return;
+    lastBackupAt = now;
+    const dir = path.join(app.getPath('userData'), 'backups');
+    fs.mkdirSync(dir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    fs.copyFileSync(getPath(), path.join(dir, 'smart-jingle-data-' + stamp + '.json'));
+    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json')).sort().reverse();
+    for (const f of files.slice(5)) {
+      fs.unlinkSync(path.join(dir, f));
+    }
+  } catch (e) {
+    /* ignore */
+  }
 }
 
 function getData() {
@@ -199,6 +222,9 @@ function addCart(playlistId, file) {
     color: null,
     mode: 'once',
     hotkey: null,
+    fadeIn: 0.01,
+    fadeOut: 0.01,
+    lock: false,
   };
   p.carts.push(cart);
   save();
@@ -286,6 +312,9 @@ function publicState() {
         volume: c.volume,
         mode: c.mode || 'once',
         hotkey: c.hotkey || null,
+        fadeIn: c.fadeIn || 0,
+        fadeOut: c.fadeOut || 0,
+        lock: !!c.lock,
       }))
     ),
   };

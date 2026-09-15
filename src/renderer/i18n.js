@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
   'use strict';
 
   const DICT = {
@@ -32,6 +32,11 @@
       clear_points: 'Clear points',
       fit: 'Fit',
       gain: 'Gain',
+      fade_in: 'Fade in (ms)',
+      fade_out: 'Fade out (ms)',
+      retrigger_lock: 'Retrigger lock (block play while running)',
+      osc_enable: 'OSC server (UDP)',
+      remote_pin: 'Remote PIN (empty = no PIN)',
       color: 'Color',
       name: 'Name',
       jingle_id: 'Jingle ID (Companion / Stream Deck)',
@@ -100,6 +105,11 @@
       clear_points: 'Limpar pontos',
       fit: 'Ajustar',
       gain: 'Ganho',
+      fade_in: 'Fade in (ms)',
+      fade_out: 'Fade out (ms)',
+      retrigger_lock: 'Bloqueio de re-disparo (impede play enquanto toca)',
+      osc_enable: 'Servidor OSC (UDP)',
+      remote_pin: 'PIN remoto (vazio = sem PIN)',
       color: 'Cor',
       name: 'Nome',
       jingle_id: 'ID do Jingle (Companion / Stream Deck)',
@@ -168,6 +178,11 @@
       clear_points: 'Effacer les points',
       fit: 'Ajuster',
       gain: 'Gain',
+      fade_in: 'Fondu entrée (ms)',
+      fade_out: 'Fondu sortie (ms)',
+      retrigger_lock: 'Verrouillage re-déclenchement (bloque le play en lecture)',
+      osc_enable: 'Serveur OSC (UDP)',
+      remote_pin: 'PIN distant (vide = sans PIN)',
       color: 'Couleur',
       name: 'Nom',
       jingle_id: 'ID du jingle (Companion / Stream Deck)',

@@ -54,10 +54,23 @@ function broadcast(text) {
   }
 }
 
-function route(req, res, method, urlPath) {
+function pinOk(req, url) {
+  const settings = storeRef ? storeRef.getData().settings : {};
+  const pin = settings.remotePin || '';
+  if (!pin) return true;
+  const given = url.searchParams.get('pin') || req.headers['x-smart-jingle-pin'] || '';
+  return given === pin;
+}
+
+function route(req, res, method, urlPath, url) {
   if (method === 'OPTIONS') {
     res.writeHead(204, CORS);
     res.end();
+    return;
+  }
+
+  if (!pinOk(req, url)) {
+    json(res, 401, { error: 'PIN required' });
     return;
   }
 
@@ -163,10 +176,10 @@ function startListening() {
   const settings = storeRef.getData().settings;
   const port = settings.port || 4405;
   if (!server) {
-    server = http.createServer((req, res) => {
-      const u = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-      route(req, res, req.method, u.pathname);
-    });
+  server = http.createServer((req, res) => {
+    const u = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    route(req, res, req.method, u.pathname, u);
+  });
     server.on('error', (err) => {
       console.error('SERVER: error', err.message);
     });
@@ -174,7 +187,20 @@ function startListening() {
   if (server.listening) return;
 
   wss = new WebSocketServer({ server, path: '/ws' });
-  wss.on('connection', (ws) => {
+  wss.on('connection', (ws, req) => {
+    try {
+      const settings = storeRef ? storeRef.getData().settings : {};
+      const pin = settings.remotePin || '';
+      if (pin) {
+        const u = new URL(req.url, 'http://localhost');
+        if (u.searchParams.get('pin') !== pin) {
+          ws.close(4001, 'PIN required');
+          return;
+        }
+      }
+    } catch (e) {
+      /* ignore */
+    }
     ws.send(JSON.stringify({ type: 'state', payload: stateCache || buildEmptyState() }));
     ws.on('message', (raw) => {
       try {

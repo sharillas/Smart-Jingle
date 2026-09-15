@@ -31,7 +31,10 @@ remotely from a tablet, another PC or a Bitfocus Companion surface.
 
 - **QCart buttons** — left click plays instantly (polyphonic), right click cues/selects it,
   **GO** launches the cued jingle and advances to the next. Editable keyboard shortcuts
-  (F1–F12, 0–9, A–Z) per jingle.
+  (F1–F12, 0–9, A–Z) per jingle; F-keys and digits also work **system-wide**.
+- **Fade in/out per jingle** — click-free transitions (ms, editable in Edit settings).
+- **Retrigger lock** — per-jingle option to block re-triggering while playing.
+- **VU meter + ON-AIR** — 16-segment LED level meter and ON-AIR indicator in the header.
 - **Playlist loop** — toggle PLAYLIST LOOP to play the playlist continuously: when a jingle
   ends, the next one starts automatically (and wraps around).
 - **Per-jingle playback mode** — each jingle can be set to *Play once (stop at OUT)* or
@@ -95,9 +98,27 @@ To remove the warning entirely, build with a Developer ID and notarization
 | POST | `/api/playlists/:id/activate` | Switch active playlist |
 | WS   | `/ws` | Live state push (JSON `{type:"state", payload}`) |
 
+Optional **PIN protection**: set a PIN in Settings; the API and web remote then require
+`?pin=<pin>` (or header `x-smart-jingle-pin`) and return `401` otherwise.
+
+## OSC
+
+UDP OSC server (Settings → enable, default port **4410**):
+
+| Address | Args | Action |
+| ------- | ---- | ------ |
+| `/jingle/<id>` | `1`/`0` | Play / stop jingle (by Jingle ID) |
+| `/transport/<cmd>` | `1` | `go`, `pause`, `reset`, `stop-all`, `loop-playlist` |
+| `/playlist/<id>` | `1` | Activate playlist |
+
 Web remote (tablet friendly): `http://<host-ip>:4405/`
 
 Default port: **4405** (change in *Settings*; restart required).
+
+## Backups
+
+The data file (`smart-jingle-data.json`) is automatically backed up every minute of changes
+(5 rotating copies) in `userData/backups/`.
 
 ## Companion module
 
