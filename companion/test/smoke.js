@@ -46,6 +46,46 @@ SmartJingle.prototype.setVariableDefinitions = function (d) { captured.variables
   const transportPreset = captured.presets['smartjingle-transport'];
   console.log('transport preset buttons:', transportPreset.buttons.map((b) => b.style.text).join(' | '));
 
+  console.log('--- PRESET STRUCTURE VALIDATION ---');
+  const errors = [];
+  const check = (ok, msg) => { if (!ok) errors.push(msg); };
+
+  for (const [pid, preset] of Object.entries(captured.presets)) {
+    check(preset.type === 'button', pid + ': type must be "button"');
+    check(typeof preset.category === 'string' && preset.category.length > 0, pid + ': category missing');
+    check(typeof preset.name === 'string' && preset.name.length > 0, pid + ': name missing');
+    check(preset.size && Number.isInteger(preset.size.width) && Number.isInteger(preset.size.height), pid + ': preset size missing');
+    check(Array.isArray(preset.buttons) && preset.buttons.length > 0, pid + ': buttons missing');
+    for (const b of preset.buttons || []) {
+      check(b.type === 'button', pid + ': button type');
+      check(Number.isInteger(b.position.x) && Number.isInteger(b.position.y), pid + ': button position');
+      check(b.size && b.size.width >= 1 && b.size.height >= 1, pid + ': button size');
+      check(typeof b.style.text === 'string' && b.style.text.length > 0, pid + ': button text');
+      check(Number.isInteger(b.style.bgcolor) && Number.isInteger(b.style.color), pid + ': button colors must be numeric');
+      check(Array.isArray(b.steps) && b.steps.length > 0, pid + ': steps missing');
+      for (const step of b.steps) {
+        for (const action of step.down || []) {
+          check(typeof action.actionId === 'string', pid + ': actionId missing');
+          check(captured.actions[action.actionId], pid + ': actionId "' + action.actionId + '" not defined in actions');
+        }
+      }
+      for (const fb of b.feedbacks || []) {
+        check(captured.feedbacks[fb.feedbackId], pid + ': feedbackId "' + fb.feedbackId + '" not defined');
+      }
+    }
+  }
+
+  const firstJingleBtn = jinglePreset.buttons[0];
+  console.log('jingle button steps[0].down[0]:', JSON.stringify(firstJingleBtn.steps[0].down[0]));
+  console.log('jingle button feedbacks:', JSON.stringify(firstJingleBtn.feedbacks.map((f) => ({ id: f.feedbackId, options: f.options }))));
+  console.log('jingle button style:', JSON.stringify(firstJingleBtn.style));
+
+  if (errors.length) {
+    console.log('PRESET ERRORS:');
+    for (const e of errors) console.log(' - ' + e);
+    process.exit(1);
+  }
+  console.log('PRESETS_VALID');
   inst.destroy();
   console.log('COMPANION_SMOKE_OK');
   process.exit(0);

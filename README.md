@@ -64,7 +64,7 @@ Get the latest installers from
 
 - Windows: `Smart.Jingle.Setup.<version>.exe` (or `.msi`)
 - macOS: `Smart.Jingle-<version>-universal.dmg`
-- Companion: `smart-jingle-<version>.tgz`
+- Companion: `Companion module Smart Jingle (v<version>).tgz`
 
 On first start the app creates a **Jingle List** playlist with 3 built-in
 jingles (SWEEPER, TRANSITION, BED MUSIC) so you can try everything immediately.
@@ -122,7 +122,7 @@ The data file (`smart-jingle-data.json`) is automatically backed up every minute
 
 ## Companion module
 
-In Companion: *Settings → Modules → Import module* and pick `smart-jingle-<version>.tgz`.
+In Companion: *Settings → Modules → Import module* and pick `Companion module Smart Jingle (v<version>).tgz`.
 Add a connection with the Smart Jingle machine IP and port 4405. Presets are generated
 automatically from the jingles configured in the app GUI:
 
