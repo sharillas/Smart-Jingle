@@ -1,6 +1,6 @@
 param(
   [ValidateSet("white", "black", "blue")]
-  [string]$Color = "black"
+  [string]$Color = "white"
 )
 
 Add-Type -AssemblyName System.Drawing
@@ -12,14 +12,13 @@ $outIco = Join-Path $assets "icon.ico"
 
 if (-not (Test-Path $srcPng)) { Write-Error "assets/icon.png not found"; exit 1 }
 
+# ---- 1. Mono variant PNG (used for the window title bar icon) ----
 $src = [System.Drawing.Bitmap]::FromFile($srcPng)
-
 $fill = switch ($Color) {
   "white" { [System.Drawing.Color]::FromArgb(255, 255, 255, 255) }
   "black" { [System.Drawing.Color]::FromArgb(255, 0, 0, 0) }
   default  { [System.Drawing.Color]::FromArgb(255, 39, 144, 255) }
 }
-
 $mono = New-Object System.Drawing.Bitmap($src.Width, $src.Height)
 for ($y = 0; $y -lt $src.Height; $y++) {
   for ($x = 0; $x -lt $src.Width; $x++) {
@@ -28,11 +27,14 @@ for ($y = 0; $y -lt $src.Height; $y++) {
     else { $mono.SetPixel($x, $y, [System.Drawing.Color]::Transparent) }
   }
 }
-
 $monoPng = Join-Path $assets ("icon-" + $Color + ".png")
 $mono.Save($monoPng, [System.Drawing.Imaging.ImageFormat]::Png)
-Write-Host "$monoPng written"
+Write-Host "$monoPng written (window title bar icon)"
+$mono.Dispose()
+$src.Dispose()
 
+# ---- 2. icon.ico from the ORIGINAL colored icon (taskbar / shortcut / installer) ----
+$srcOriginal = [System.Drawing.Bitmap]::FromFile($srcPng)
 $sizes = @(256, 128, 64, 48, 32, 16)
 $pngBytes = @{}
 foreach ($s in $sizes) {
@@ -40,12 +42,13 @@ foreach ($s in $sizes) {
   $g = [System.Drawing.Graphics]::FromImage($b)
   $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
   $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-  $g.DrawImage($mono, 0, 0, $s, $s)
+  $g.DrawImage($srcOriginal, 0, 0, $s, $s)
   $ms = [System.IO.MemoryStream]::new()
   $b.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
   $pngBytes[$s] = $ms.ToArray()
   $g.Dispose(); $b.Dispose(); $ms.Dispose()
 }
+$srcOriginal.Dispose()
 
 $msIco = [System.IO.MemoryStream]::new()
 $bw = [System.IO.BinaryWriter]::new($msIco)
@@ -73,7 +76,4 @@ $bw.Flush()
 [System.IO.File]::WriteAllBytes($outIco, $msIco.ToArray())
 $bw.Dispose()
 $msIco.Dispose()
-Write-Host "icon.ico regenerated ($Color) for window title bar / taskbar / shortcut / installer"
-
-$mono.Dispose()
-$src.Dispose()
+Write-Host "icon.ico regenerated from ORIGINAL colors (taskbar / shortcut / installer)"
