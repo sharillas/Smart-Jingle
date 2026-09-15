@@ -83,6 +83,13 @@ fs.copyFileSync(path.join(companionDir, 'LICENSE'), path.join(stagingDir, 'LICEN
 fs.writeFileSync(path.join(stagingDir, 'package.json'), JSON.stringify(shippedPackageJson, null, 2) + '\n');
 fs.writeFileSync(path.join(stagingDir, 'companion', 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 
+fs.cpSync(path.join(companionDir, 'node_modules'), path.join(stagingDir, 'node_modules'), {
+  recursive: true,
+  filter: (src) => !src.includes('\\.bin'),
+});
+
+console.log('Bundled @companion-module/base', pkg.version, '+ dependencies into module');
+
 const outName = `Companion module Smart Jingle (v${pkg.version}).tgz`;
 const outPath = path.join(outDir, outName);
 
