@@ -112,12 +112,12 @@
     if (fade && !inst.fading) {
       const doStop = () => {
         if (inst.stopped) return;
-        finishStop(inst, cartId);
+        finishStop(inst, resolvedId);
       };
       rampVolume(inst, inst.audio.volume, 0, inst.fadeOut, doStop);
       return true;
     }
-    finishStop(inst, cartId);
+    finishStop(inst, resolvedId);
     return true;
   }
 
@@ -138,16 +138,17 @@
   function play(cartId, getCart) {
     const cart = getCart(cartId);
     if (!cart) return false;
-    if (cart.lock && active.has(cartId)) return false;
+    const resolvedId = cart.id || cartId;
+    if (cart.lock && active.has(resolvedId)) return false;
 
-    stopCart(cartId, { instant: true });
+    stopCart(resolvedId, { instant: true });
 
     const audio = new Audio(audioUrl(cart.file));
     const inS = cart.in || 0;
     const outS = cartEnd(cart);
     const loop = cart.mode === 'loop';
     const inst = {
-      id: cartId,
+      id: resolvedId,
       audio,
       inS,
       outS,
@@ -164,8 +165,8 @@
       analyser: null,
       level: 0,
     };
-    active.set(cartId, inst);
-    levels[cartId] = 0;
+    active.set(resolvedId, inst);
+    levels[resolvedId] = 0;
 
     audio.volume = inst.fadeIn > 0 ? 0 : inst.baseTarget;
     applySink(audio);
@@ -189,10 +190,10 @@
             /* ignore */
           }
         } else {
-          stopCart(cartId, { fade: false });
+          stopCart(resolvedId, { fade: false });
           if (endedHandler) {
             try {
-              endedHandler(cartId);
+              endedHandler(resolvedId);
             } catch (e) {
               /* ignore */
             }
@@ -211,10 +212,10 @@
         }
         return;
       }
-      finishStop(inst, cartId);
+      finishStop(inst, resolvedId);
       if (endedHandler) {
         try {
-          endedHandler(cartId);
+          endedHandler(resolvedId);
         } catch (e) {
           /* ignore */
         }
@@ -222,10 +223,10 @@
     });
     audio.addEventListener('error', () => {
       if (inst.stopped) return;
-      console.error('PLAYER: audio error', cartId, audio.error ? audio.error.code : '?');
-      finishStop(inst, cartId);
+      console.error('PLAYER: audio error', resolvedId, audio.error ? audio.error.code : '?');
+      finishStop(inst, resolvedId);
     });
-    audio.play().catch(() => finishStop(inst, cartId));
+    audio.play().catch(() => finishStop(inst, resolvedId));
 
     if (inst.fadeIn > 0) {
       inst.fadeInProgress = true;
@@ -234,8 +235,8 @@
       });
     }
 
-    selectedCartId = cartId;
-    lastPlayedId = cartId;
+    selectedCartId = resolvedId;
+    lastPlayedId = resolvedId;
     if (paused) paused = false;
     return true;
   }

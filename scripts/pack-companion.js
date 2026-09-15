@@ -12,7 +12,7 @@ const apiVersion = basePkg.version;
 
 const manifest = {
   id: 'smartchoice-smart-jingle',
-  name: 'SMART-JINGLE - by Nelson Teixeira',
+  name: `Smart Jingle.v${pkg.version} [ by Nelson Teixeira ]`,
   shortname: 'smart-jingle',
   description:
     'Control Smart Jingle playout (jingle carts, GO/PAUSE/RESET/STOP ALL transport, playlists) - by Nelson Teixeira',
@@ -29,7 +29,7 @@ const manifest = {
     entrypoint: '../main.js',
   },
   manufacturer: 'Smartchoice',
-  products: ['SMART-JINGLE - by Nelson Teixeira'],
+  products: [`Smart Jingle.v${pkg.version} [ by Nelson Teixeira ]`],
   keywords: ['audio', 'jingles', 'playout', 'cart', 'radio', 'sound'],
 };
 

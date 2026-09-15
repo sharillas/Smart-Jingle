@@ -355,35 +355,45 @@ class SmartJingleInstance extends InstanceBase {
   buildPresets() {
     const presets = {};
 
-    const mkTransport = (id, text, command, feedbacks) => {
+    const mkTransport = (id, text, command, style, feedbacks) => {
       presets[id] = {
         type: 'simple',
         category: 'Smart Jingle',
         name: 'Transport - ' + text.replace('\n', ' '),
-        style: {
-          text,
-          size: 'auto',
-          color: combineRgb(255, 255, 255),
-          bgcolor: combineRgb(0, 0, 0),
-        },
+        style,
         steps: [{ down: [{ actionId: 'transport', options: { command } }], up: [] }],
         feedbacks: feedbacks || [],
       };
     };
 
-    mkTransport('sj-go', 'GO', 'go', [
-      { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
-    ]);
-    mkTransport('sj-pause', 'PAUSE', 'pause', [
-      { feedbackId: 'paused', options: {}, style: { bgcolor: combineRgb(245, 158, 11), color: combineRgb(0, 0, 0) } },
-      { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
-    ]);
-    mkTransport('sj-reset', 'RESET', 'reset', [
-      { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
-    ]);
-    mkTransport('sj-stop-all', 'STOP\nALL', 'stop-all', [
-      { feedbackId: 'connected', options: {}, style: { bgcolor: combineRgb(0, 140, 0) } },
-    ]);
+    mkTransport(
+      'sj-go',
+      'GO',
+      'go',
+      { text: 'GO', size: '30', color: combineRgb(255, 255, 255), bgcolor: combineRgb(34, 197, 94) },
+      []
+    );
+    mkTransport(
+      'sj-pause',
+      'PAUSE',
+      'pause',
+      { text: 'PAUSE', size: '24', color: combineRgb(0, 0, 0), bgcolor: combineRgb(245, 158, 11) },
+      [{ feedbackId: 'paused', options: {}, style: { bgcolor: combineRgb(245, 158, 11), color: combineRgb(0, 0, 0) } }]
+    );
+    mkTransport(
+      'sj-reset',
+      'RESET',
+      'reset',
+      { text: 'RESET', size: '24', color: combineRgb(255, 255, 255), bgcolor: combineRgb(47, 129, 247) },
+      []
+    );
+    mkTransport(
+      'sj-stop-all',
+      'STOP\nALL',
+      'stop-all',
+      { text: 'STOP\nALL', size: '24', color: combineRgb(255, 255, 255), bgcolor: combineRgb(220, 38, 38) },
+      []
+    );
 
     for (const j of this.jingles) {
       const key = this.keyOf(j);
@@ -394,7 +404,7 @@ class SmartJingleInstance extends InstanceBase {
         name: 'Jingle ' + key + ' - ' + j.name,
         style: {
           text: j.name,
-          size: 'auto',
+          size: '24',
           color: combineRgb(255, 255, 255),
           bgcolor: color || combineRgb(0, 0, 0),
         },
