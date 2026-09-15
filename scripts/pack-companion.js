@@ -20,10 +20,22 @@ const manifest = {
   bugs: 'https://github.com/sharillas/Smart-Jingle/issues',
   maintainers: [{ name: 'Nelson Teixeira' }],
   legacyIds: ['smart-jingle'],
-  runtime: { type: 'node22', api: 'nodejs-ipc', apiVersion: '1.0.0', entrypoint: 'index.js' },
+  runtime: { type: 'node22', api: 'nodejs-ipc', apiVersion: '1.14.0', entrypoint: 'index.js' },
   manufacturer: 'Smartchoice',
   products: ['SMART-JINGLE - by Nelson Teixeira'],
   keywords: ['audio', 'jingles', 'playout', 'cart', 'radio', 'sound'],
+};
+
+const shippedPackageJson = {
+  name: 'smart-jingle',
+  version: pkg.version,
+  description: manifest.description,
+  main: 'index.js',
+  type: 'commonjs',
+  license: 'UNLICENSED',
+  dependencies: {
+    '@companion-module/base': '^1.14.0',
+  },
 };
 
 try {
@@ -32,6 +44,23 @@ try {
   console.log('Manifest validated against @companion-module/base (Companion validator)');
 } catch (e) {
   console.error('Manifest validation FAILED:', e.message);
+  process.exit(1);
+}
+
+try {
+  const v = String(manifest.runtime.apiVersion || '');
+  const m = /^(\d+)\.(\d+)\.(\d+)/.exec(v);
+  const supported =
+    (m && m[1] === '0' && m[2] === '6') || (m && m[1] === '1' && m[2] === '14') || (m && m[1] === '2' && m[2] === '1');
+  if (!supported) {
+    console.error(
+      `runtime.apiVersion ${v} is NOT supported by Companion (supported: ~0.6, 1.14.x, 2.1.x)`
+    );
+    process.exit(1);
+  }
+  console.log('apiVersion ' + v + ' is compatible with Companion');
+} catch (e) {
+  console.error('apiVersion check FAILED:', e.message);
   process.exit(1);
 }
 
@@ -51,6 +80,7 @@ fs.copyFileSync(path.join(companionDir, 'index.js'), path.join(stagingDir, 'inde
 fs.copyFileSync(path.join(companionDir, 'src', 'main.js'), path.join(stagingDir, 'src', 'main.js'));
 fs.copyFileSync(path.join(companionDir, 'README.md'), path.join(stagingDir, 'README.md'));
 fs.copyFileSync(path.join(companionDir, 'LICENSE'), path.join(stagingDir, 'LICENSE'));
+fs.writeFileSync(path.join(stagingDir, 'package.json'), JSON.stringify(shippedPackageJson, null, 2) + '\n');
 fs.writeFileSync(path.join(stagingDir, 'companion', 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 
 const outName = `Companion module Smart Jingle (v${pkg.version}).tgz`;
