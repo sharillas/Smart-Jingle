@@ -485,6 +485,7 @@
         playhead: preview ? preview.currentTime : null,
         view: edView,
         ruler: true,
+        gainScale: vol / 100,
         colors: { inside: '#3f8cff', outside: 'rgba(120,130,150,0.25)' },
       });
       $('#ed-in').textContent = SJPlayer.fmt(inS);
@@ -613,6 +614,7 @@
       $('#ed-db-val').textContent = volToDb(vol).toFixed(1) + ' dB';
       $('#ed-db').value = volToDb(vol).toFixed(1);
       if (preview) preview.volume = vol / 100;
+      if (wave) draw();
     };
     syncVol();
     $('#ed-vol').addEventListener('input', (e) => {

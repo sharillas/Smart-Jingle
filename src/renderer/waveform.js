@@ -68,12 +68,13 @@
     const w = canvas.width;
     const h = canvas.height;
     const g = canvas.getContext('2d');
-    const { inS = 0, outS = null, playhead = null, selected = false, colors, view = null, ruler = false } = opts || {};
+    const { inS = 0, outS = null, playhead = null, selected = false, colors, view = null, ruler = false, gainScale = 1 } = opts || {};
 
     const dur = wave.duration || 1;
     const out = outS === null || outS === undefined ? dur : outS;
     const peaks = wave.peaks;
     const n = peaks.length / 2;
+    const gs = isFinite(gainScale) ? Math.max(0, gainScale) : 1;
 
     const rulerH = ruler ? 20 : 0;
     const waveH = h - rulerH;
@@ -116,8 +117,8 @@
         }
         const bw = Math.max(1.5, pxs / buckets);
         const x = x0 + b * bw;
-        const y0 = mid - max * amp;
-        const y1 = mid - min * amp;
+        const y0 = mid - max * amp * gs;
+        const y1 = mid - min * amp * gs;
         g.fillRect(x, y0, bw, Math.max(1.5, y1 - y0));
       }
     };

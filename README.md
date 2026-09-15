@@ -15,7 +15,7 @@ remotely from a tablet, another PC or a Bitfocus Companion surface.
 
 ## Screenshots / Style guide
 
-### Main window (grid view) — BED MUSIC selected with its waveform
+### Main window (grid view) — BED MUSIC on air: VU meter, ON-AIR and waveform
 
 ![Smart Jingle grid view](docs/screenshots/grid-bed-music.png)
 
