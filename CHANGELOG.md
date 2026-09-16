@@ -3,6 +3,11 @@
 All notable changes to Smart Jingle are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.14] - 2026-09-16
+
+### Fixed
+- Click/pop artifacts removed: smooth fade in/out on play, stop, pause, reset, OUT points and loop jumps (default 1s, editable per jingle).
+
 ## [0.3.0] - 2026-09-15
 
 ### Added

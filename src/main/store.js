@@ -64,6 +64,14 @@ function ensureCids() {
         c.cid = cid;
         changed = true;
       }
+      if (c.fadeIn === undefined || c.fadeIn === null || c.fadeIn < 0.05) {
+        c.fadeIn = 1.0;
+        changed = true;
+      }
+      if (c.fadeOut === undefined || c.fadeOut === null || c.fadeOut < 0.05) {
+        c.fadeOut = 1.0;
+        changed = true;
+      }
       used.add(c.cid);
     }
   }
@@ -100,7 +108,7 @@ function seedDefaults(srcDir) {
         fs.copyFileSync(src, dst);
       }
       if (fs.existsSync(dst)) {
-        carts.push({ id: id('c'), name: f.name, file: dst, in: 0, out: null, volume: 1, color: null, mode: 'once', hotkey: null, fadeIn: 0.01, fadeOut: 0.01, lock: false });
+        carts.push({ id: id('c'), name: f.name, file: dst, in: 0, out: null, volume: 1, color: null, mode: 'once', hotkey: null, fadeIn: 1.0, fadeOut: 1.0, lock: false });
       }
     }
     if (carts.length) {
@@ -222,8 +230,8 @@ function addCart(playlistId, file) {
     color: null,
     mode: 'once',
     hotkey: null,
-    fadeIn: 0.01,
-    fadeOut: 0.01,
+    fadeIn: 1.0,
+    fadeOut: 1.0,
     lock: false,
   };
   p.carts.push(cart);
